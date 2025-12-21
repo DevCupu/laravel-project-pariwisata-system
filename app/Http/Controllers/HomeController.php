@@ -2,19 +2,28 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Destinasi;
+use App\Models\AboutSection;
+use App\Models\CampingPackage;
+use App\Models\GeneralFacilityInfo;
+use App\Models\PhotoSpot;
 
 class HomeController extends Controller
 {
     public function index()
     {
-        // Ambil 6 destinasi aktif terbaru (anggap sebagai "populer")
-        $destinasiPopuler = Destinasi::with('kategori')
-            ->where('status', 1)
-            ->latest()
-            ->take(6)
+        $aboutSections = AboutSection::active()
+            ->orderBy('display_order')
             ->get();
 
-        return view('home', compact('destinasiPopuler'));
+        $photoSpots = PhotoSpot::active()->ordered()->get();
+        $generalFacilities = GeneralFacilityInfo::active()->ordered()->get();
+        $campingPackages = CampingPackage::active()->ordered()->get();
+
+        return view('home', compact(
+            'aboutSections',
+            'photoSpots',
+            'generalFacilities',
+            'campingPackages'
+        ));
     }
 }

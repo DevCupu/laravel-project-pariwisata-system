@@ -2,9 +2,10 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
+use App\Models\AboutSection;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\View;
-use App\Models\Destinasi;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,10 +22,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // 
-        View::composer('layouts.admin', function ($view) {
-            $jumlahDestinasi = Destinasi::count();
-            $view->with('jumlahDestinasi', $jumlahDestinasi);
+        Paginator::useTailwind();
+
+        View::composer('layouts.public', function ($view) {
+            $view->with(
+                'navAboutSections',
+                AboutSection::active()->orderBy('display_order')->get()
+            );
         });
     }
 }
