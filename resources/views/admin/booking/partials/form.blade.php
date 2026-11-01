@@ -76,6 +76,20 @@
                         <p><span class="font-semibold text-slate-800">Kode:</span> <span class="font-mono text-slate-900">{{ $booking->booking_code }}</span></p>
                         <p class="mt-0.5 text-xs text-slate-500">Dibuat {{ $booking->created_at->diffForHumans() }}</p>
                     </div>
+                    @if ($booking->package === 'cafe' || $booking->facility?->category === 'cafe')
+                        <div class="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950 ring-1 ring-amber-100">
+                            <p class="font-semibold">Pilihan menu kafe</p>
+                            @if ($booking->menuItems->isNotEmpty())
+                                <ul class="mt-1 list-inside list-disc space-y-1">
+                                    @foreach ($booking->menuItems as $menuItem)
+                                        <li>{{ $menuItem->menu_name }} x {{ $menuItem->quantity }} · Rp {{ number_format($menuItem->unit_price * $menuItem->quantity, 0, ',', '.') }}</li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <p class="mt-1 text-xs">Meja saja; menu dipesan langsung di lokasi.</p>
+                            @endif
+                        </div>
+                    @endif
                 </x-ui.section>
             @endif
 

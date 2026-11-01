@@ -162,6 +162,24 @@
                                     </div>
                                 </div>
 
+                                @if ($booking->package === 'cafe' || $booking->facility?->category === 'cafe')
+                                    <div class="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-4 text-sm text-amber-950">
+                                        <p class="mb-2 text-xs font-semibold uppercase tracking-wide">Reservasi kafe</p>
+                                        @if ($booking->menuItems->isNotEmpty())
+                                            <ul class="space-y-1">
+                                                @foreach ($booking->menuItems as $menuItem)
+                                                    <li class="flex justify-between gap-3">
+                                                        <span>{{ $menuItem->menu_name }} x {{ $menuItem->quantity }}</span>
+                                                        <span class="shrink-0 font-medium">Rp {{ number_format($menuItem->unit_price * $menuItem->quantity, 0, ',', '.') }}</span>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @else
+                                            <p>Meja saja; Anda dapat memilih menu dan memesan langsung di kafe.</p>
+                                        @endif
+                                    </div>
+                                @endif
+
                                 @if ($booking->notes)
                                     <div
                                         class="rounded-2xl bg-blue-50 border border-blue-100 px-4 py-3 text-sm text-blue-900">

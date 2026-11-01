@@ -31,7 +31,7 @@
                             @error('category')
                                 <p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>
                             @else
-                                <p class="mt-1 text-xs text-slate-500">Gunakan format slug sederhana tanpa spasi.</p>
+                                <p class="mt-1 text-xs text-slate-500">Fasilitas dengan kategori yang sama dikelompokkan bersama saat pengunjung booking.</p>
                             @enderror
                         </div>
                     </div>
@@ -44,14 +44,14 @@
         <div class="mt-5 space-y-5 lg:col-span-1 lg:mt-0">
             <x-ui.section title="Ketersediaan">
                 <div class="grid grid-cols-2 gap-4">
-                    <x-ui.input label="Kapasitas/Hari" name="capacity_per_day" type="number" min="0" max="1000"
-                        :value="$facility->capacity_per_day ?? 0" required />
-                    <x-ui.input label="Urutan" name="sort_order" type="number" min="0" max="5000"
-                        :value="$facility->sort_order ?? 0" />
+                    <x-ui.input label="Kapasitas tamu per hari" name="capacity_per_day" type="number" min="0" max="1000"
+                        :value="$facility->capacity_per_day ?? 0" hint="Isi 0 jika tidak dibatasi." required />
+                    <x-ui.input label="Urutan tampil" name="sort_order" type="number" min="0" max="5000"
+                        :value="$facility->sort_order ?? 0" hint="Angka kecil tampil lebih dulu." />
                 </div>
                 <div class="mt-4">
                     <x-ui.toggle name="is_active" label="Aktif untuk booking"
-                        helper="Nonaktifkan bila fasilitas sedang tidak tersedia."
+                        helper="Fasilitas nonaktif tidak muncul di formulir booking publik."
                         :checked="old('is_active', ($facility->is_active ?? true))" />
                 </div>
             </x-ui.section>

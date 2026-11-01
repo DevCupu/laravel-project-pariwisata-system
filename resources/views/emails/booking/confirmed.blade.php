@@ -34,6 +34,20 @@
                         <td style="padding: 4px 0; color: #475569;">Jumlah Tamu</td>
                         <td style="padding: 4px 0;">{{ $booking->guests }} orang</td>
                     </tr>
+                    @if ($booking->package === 'cafe' || $booking->facility?->category === 'cafe')
+                        <tr>
+                            <td style="padding: 4px 0; color: #475569;">Menu Kafe</td>
+                            <td style="padding: 4px 0;">
+                                @if ($booking->menuItems->isNotEmpty())
+                                    @foreach ($booking->menuItems as $menuItem)
+                                        {{ $menuItem->menu_name }} x {{ $menuItem->quantity }} — Rp {{ number_format($menuItem->unit_price * $menuItem->quantity, 0, ',', '.') }}<br>
+                                    @endforeach
+                                @else
+                                    Meja saja; menu dipesan langsung di lokasi.
+                                @endif
+                            </td>
+                        </tr>
+                    @endif
                 </tbody>
             </table>
         </div>

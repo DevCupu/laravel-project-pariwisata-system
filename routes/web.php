@@ -52,6 +52,7 @@ Route::middleware(['auth', IsAdmin::class])
         Route::get('/bookings/{booking}/edit', [AdminBookingController::class, 'edit'])->name('bookings.edit');
         Route::put('/bookings/{booking}', [AdminBookingController::class, 'update'])->name('bookings.update');
         Route::patch('/bookings/{booking}/status', [AdminBookingController::class, 'updateStatus'])->name('bookings.status');
+        Route::delete('/bookings/{booking}', [AdminBookingController::class, 'destroy'])->name('bookings.destroy');
 
         Route::patch('/facilities/{facility}/toggle-status', [AdminFacilityController::class, 'toggleStatus'])->name('facilities.toggle');
         Route::resource('/facilities', AdminFacilityController::class)->except(['show']);

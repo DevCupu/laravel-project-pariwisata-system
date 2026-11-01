@@ -7,15 +7,18 @@ use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\CampingPackage;
 use App\Models\Facility;
+use App\Models\MenuItem;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\Str;
 use Illuminate\Support\ViewErrorBag;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class BookingController extends Controller
@@ -56,6 +59,7 @@ class BookingController extends Controller
         return view('booking.index', [
             'facilityCategories' => $facilities,
             'prefilledFacility' => $prefilledFacility,
+            'menuItems' => MenuItem::available()->ordered()->get(),
         ]);
     }
 
@@ -77,7 +81,7 @@ class BookingController extends Controller
         $validated = $validator->validated();
         $code = Str::upper($validated['booking_code']);
 
-        $booking = Booking::with('facility')->where('booking_code', $code)
+        $booking = Booking::with(['facility', 'menuItems'])->where('booking_code', $code)
             ->when($validated['email'] ?? null, fn ($query, $email) => $query->where('email', $email))
             ->first();
 
@@ -94,6 +98,9 @@ class BookingController extends Controller
             'guests' => ['required', 'integer', 'min:1', 'max:50'],
             'facility_category' => ['required', 'string', 'max:50'],
             'facility_id' => ['required', 'integer', 'exists:facilities,id'],
+            'menu_option' => ['nullable', 'in:without_menu,with_menu'],
+            'menu_items' => ['nullable', 'array', 'max:30'],
+            'menu_items.*' => ['required', 'integer', 'min:0', 'max:50'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -111,19 +118,55 @@ class BookingController extends Controller
                 ->withInput();
         }
 
+        $menuQuantities = collect($validated['menu_items'] ?? [])
+            ->map(fn ($quantity) => (int) $quantity)
+            ->filter(fn (int $quantity) => $quantity > 0);
+        $selectedMenuItems = collect();
+
+        if ($facility->category === 'cafe') {
+            $menuOption = $validated['menu_option'] ?? null;
+
+            if (! in_array($menuOption, ['without_menu', 'with_menu'], true)) {
+                throw ValidationException::withMessages([
+                    'menu_option' => 'Pilih reservasi kafe dengan menu atau tanpa menu.',
+                ]);
+            }
+
+            if ($menuOption === 'with_menu' && $menuQuantities->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'menu_items' => 'Pilih setidaknya satu menu untuk melanjutkan.',
+                ]);
+            }
+
+            if ($menuOption === 'with_menu') {
+                $selectedMenuItems = MenuItem::available()
+                    ->whereIn('id', $menuQuantities->keys())
+                    ->get()
+                    ->keyBy('id');
+
+                if ($selectedMenuItems->count() !== $menuQuantities->count()) {
+                    throw ValidationException::withMessages([
+                        'menu_items' => 'Salah satu menu sudah tidak tersedia. Periksa pilihan menu Anda.',
+                    ]);
+                }
+            } else {
+                $menuQuantities = collect();
+            }
+        }
+
         $requestedGuests = (int) $validated['guests'];
-        $usedQuota = Booking::where('facility_id', $facility->id)
+        $usedGuests = Booking::where('facility_id', $facility->id)
             ->whereDate('visit_date', $validated['visit_date'])
             ->whereIn('status', Booking::ACTIVE_STATUSES)
             ->sum('guests');
 
         $capacity = (int) $facility->capacity_per_day;
 
-        if ($capacity > 0 && ($usedQuota + $requestedGuests) > $capacity) {
-            $remaining = max($capacity - $usedQuota, 0);
+        if ($capacity > 0 && ($usedGuests + $requestedGuests) > $capacity) {
+            $remaining = max($capacity - $usedGuests, 0);
             $message = $remaining > 0
-                ? 'Kuota untuk '.$facility->name.' tersisa '.$remaining.' slot pada tanggal tersebut.'
-                : 'Kuota untuk '.$facility->name.' pada tanggal tersebut sudah penuh.';
+                ? 'Kapasitas '.$facility->name.' tersisa '.$remaining.' tamu pada tanggal tersebut.'
+                : 'Kapasitas '.$facility->name.' sudah penuh pada tanggal tersebut.';
 
             return back()
                 ->withErrors(['facility_id' => $message])
@@ -133,9 +176,25 @@ class BookingController extends Controller
         $validated['facility_id'] = $facility->id;
         $validated['package'] = $facility->category;
         $validated['booking_code'] = $this->generateBookingCode();
+        unset($validated['menu_option'], $validated['menu_items']);
 
-        $booking = Booking::create($validated);
-        $booking->loadMissing('facility');
+        $booking = DB::transaction(function () use ($validated, $menuQuantities, $selectedMenuItems) {
+            $booking = Booking::create($validated);
+
+            foreach ($menuQuantities as $menuItemId => $quantity) {
+                $menuItem = $selectedMenuItems->get($menuItemId);
+
+                $booking->menuItems()->create([
+                    'menu_item_id' => $menuItem->id,
+                    'menu_name' => $menuItem->name,
+                    'quantity' => $quantity,
+                    'unit_price' => $menuItem->price,
+                ]);
+            }
+
+            return $booking;
+        });
+        $booking->loadMissing(['facility', 'menuItems']);
 
         try {
             Mail::to($booking->email)->send(new BookingSubmittedMail($booking));
@@ -155,28 +214,31 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'date' => ['required', 'date', 'after_or_equal:today'],
+            'guests' => ['sometimes', 'integer', 'min:1', 'max:50'],
         ]);
+        $requestedGuests = (int) ($validated['guests'] ?? 1);
 
         $facilities = Facility::where('is_active', true)
             ->withSum([
-                'bookings as used_slots' => function ($query) use ($validated) {
+                'bookings as used_guests' => function ($query) use ($validated) {
                     $query->whereDate('visit_date', $validated['date'])
                         ->whereIn('status', Booking::ACTIVE_STATUSES);
                 },
             ], 'guests')
             ->get();
 
-        $payload = $facilities->mapWithKeys(function (Facility $facility) {
+        $payload = $facilities->mapWithKeys(function (Facility $facility) use ($requestedGuests) {
             $capacity = (int) $facility->capacity_per_day;
-            $used = (int) ($facility->used_slots ?? 0);
-            $remaining = $capacity > 0 ? max($capacity - $used, 0) : null;
+            $usedGuests = (int) ($facility->used_guests ?? 0);
+            $remaining = $capacity > 0 ? max($capacity - $usedGuests, 0) : null;
 
             return [
                 $facility->id => [
                     'capacity' => $capacity,
-                    'used' => $used,
+                    'used_guests' => $usedGuests,
                     'remaining' => $remaining,
                     'is_full' => $capacity > 0 ? $remaining === 0 : false,
+                    'can_accommodate_guests' => $capacity === 0 || $remaining >= $requestedGuests,
                     'category' => $facility->category,
                     'name' => $facility->name,
                 ],

@@ -64,6 +64,11 @@
                 '• Status: ' . $statusLabel,
                 '',
                 $statusNotes,
+                ($booking->package === 'cafe' || $booking->facility?->category === 'cafe')
+                    ? 'Menu Kafe: ' . ($booking->menuItems->isNotEmpty()
+                        ? $booking->menuItems->map(fn ($item) => $item->menu_name . ' x ' . $item->quantity)->implode(', ')
+                        : 'meja saja, menu dipesan di lokasi')
+                    : null,
                 'Mohon mencantumkan kode booking ini pada bukti pembayaran atau saat konfirmasi keuangan.',
                 '',
                 'Silakan balas pesan ini jika memerlukan bantuan tambahan. Terima kasih.',
@@ -286,6 +291,15 @@
                                             <p class="text-xs italic text-base-content/40">Fasilitas tidak tercatat</p>
                                         @endif
 
+                                        @if ($booking->package === 'cafe' || $booking->facility?->category === 'cafe')
+                                            <p class="mt-1 text-xs text-amber-700">
+                                                <span class="font-semibold">Menu:</span>
+                                                {{ $booking->menuItems->isNotEmpty()
+                                                    ? $booking->menuItems->map(fn ($item) => $item->menu_name . ' x ' . $item->quantity)->implode(', ')
+                                                    : 'meja saja, pesan di lokasi' }}
+                                            </p>
+                                        @endif
+
                                         @if ($booking->notes)
                                             <p class="mt-1 max-w-[220px] truncate rounded-md bg-base-200/70 px-1.5 py-0.5 text-[11px] text-base-content/60"
                                                 title="{{ $booking->notes }}">
@@ -342,6 +356,22 @@
                                                 aria-label="Salin kode booking {{ $booking->booking_code }}">
                                                 <i class="fas fa-copy text-xs"></i>
                                             </button>
+
+                                            <form method="POST" action="{{ route('admin.bookings.destroy', $booking) }}"
+                                                data-confirm="Hapus booking {{ $booking->booking_code }} milik {{ $booking->name }}?">
+                                                @csrf
+                                                @method('DELETE')
+                                                <input type="hidden" name="q" value="{{ $filters['q'] }}">
+                                                <input type="hidden" name="status" value="{{ $filters['status'] }}">
+                                                <input type="hidden" name="from" value="{{ $filters['from'] }}">
+                                                <input type="hidden" name="to" value="{{ $filters['to'] }}">
+                                                <input type="hidden" name="sort" value="{{ $filters['sort'] }}">
+                                                <button type="submit" class="btn btn-ghost btn-sm btn-square text-error"
+                                                    title="Hapus booking {{ $booking->booking_code }}"
+                                                    aria-label="Hapus booking {{ $booking->booking_code }}">
+                                                    <i class="fas fa-trash text-xs"></i>
+                                                </button>
+                                            </form>
 
                                             @if ($waNumber)
                                                 <a href="https://wa.me/{{ $waNumber }}?text={{ $waMessage }}"
@@ -401,6 +431,16 @@
                                         <span class="text-base-content/50">· {{ $booking->package ?: 'Tanpa paket' }}</span>
                                     </dd>
                                 </div>
+                                @if ($booking->package === 'cafe' || $booking->facility?->category === 'cafe')
+                                    <div class="col-span-2">
+                                        <dt class="text-[10px] uppercase tracking-wide text-base-content/45">Menu Kafe</dt>
+                                        <dd class="text-base-content/80">
+                                            {{ $booking->menuItems->isNotEmpty()
+                                                ? $booking->menuItems->map(fn ($item) => $item->menu_name . ' x ' . $item->quantity)->implode(', ')
+                                                : 'Meja saja, menu dipesan di lokasi' }}
+                                        </dd>
+                                    </div>
+                                @endif
                                 <div class="col-span-2">
                                     <dt class="text-[10px] uppercase tracking-wide text-base-content/45">Kontak</dt>
                                     <dd class="break-words text-base-content/80">
@@ -425,6 +465,20 @@
                                     class="btn btn-ghost btn-sm gap-1.5">
                                     <i class="fas fa-copy text-xs"></i> Salin
                                 </button>
+
+                                <form method="POST" action="{{ route('admin.bookings.destroy', $booking) }}"
+                                    data-confirm="Hapus booking {{ $booking->booking_code }} milik {{ $booking->name }}?">
+                                    @csrf
+                                    @method('DELETE')
+                                    <input type="hidden" name="q" value="{{ $filters['q'] }}">
+                                    <input type="hidden" name="status" value="{{ $filters['status'] }}">
+                                    <input type="hidden" name="from" value="{{ $filters['from'] }}">
+                                    <input type="hidden" name="to" value="{{ $filters['to'] }}">
+                                    <input type="hidden" name="sort" value="{{ $filters['sort'] }}">
+                                    <button type="submit" class="btn btn-ghost btn-sm gap-1.5 text-error">
+                                        <i class="fas fa-trash text-xs"></i> Hapus
+                                    </button>
+                                </form>
 
                                 @if ($waNumber)
                                     <a href="https://wa.me/{{ $waNumber }}?text={{ $waMessage }}" target="_blank"

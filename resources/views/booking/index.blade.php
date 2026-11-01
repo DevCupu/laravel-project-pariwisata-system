@@ -18,26 +18,22 @@
         $selectedFacilityId = old('facility_id', $prefilled?->id);
         $selectedCategory = old('facility_category', $prefilled?->category);
         $guestDisplayLabel = old('guests') ? old('guests') . ' orang' : 'Pilih jumlah tamu';
-        $categoryDisplayLabel = 'Pilih kategori fasilitas';
-        $facilityDisplayLabel = 'Pilih fasilitas sesuai kategori';
-
-        if ($selectedCategory && $groupedFacilities->has($selectedCategory)) {
-            $selectedFacilities = $groupedFacilities[$selectedCategory];
-            $selectedMinPrice = $selectedFacilities->pluck('booking_price_amount')->filter()->min();
-            $selectedPriceSuffix = $selectedMinPrice
-                ? ' • mulai Rp ' . number_format($selectedMinPrice, 0, ',', '.')
-                : '';
-            $categoryDisplayLabel = Str::title($selectedCategory) . ' (' . $selectedFacilities->count() . ' pilihan' . $selectedPriceSuffix . ')';
-        }
-
-        $selectedFacility = $groupedFacilities->collapse()->firstWhere('id', $selectedFacilityId);
-        if ($selectedFacility) {
-            $selectedBaseLabel = trim($selectedFacility->name . ($selectedFacility->booking_price_label ? ' — ' . $selectedFacility->booking_price_label : ''));
-            $selectedCapacityLabel = $selectedFacility->capacity_per_day
-                ? 'Kuota harian ' . $selectedFacility->capacity_per_day
-                : 'Kuota fleksibel';
-            $facilityDisplayLabel = $selectedBaseLabel . ' (' . $selectedCapacityLabel . ')';
-        }
+        $menuItems = $menuItems ?? collect();
+        $oldMenuQuantities = old('menu_items', []);
+        $oldMenuQuantities = is_array($oldMenuQuantities) ? $oldMenuQuantities : [];
+        $menuQuantities = $menuItems->mapWithKeys(fn ($item) => [
+            $item->id => (int) ($oldMenuQuantities[$item->id] ?? 0),
+        ])->all();
+        $initialMenuOption = old('menu_option', 'without_menu');
+        $menuItemsForWizard = $menuItems->map(fn ($item) => [
+            'id' => (int) $item->id,
+            'name' => $item->name,
+            'price' => (int) $item->price,
+        ])->values();
+        $nestedMenuError = collect($errors->getBag('default')->getMessages())
+            ->first(fn ($messages, $key) => Str::startsWith($key, 'menu_items.'));
+        $menuItemsError = $errors->first('menu_items') ?: ($nestedMenuError[0] ?? null);
+        $hasMenuErrors = $errors->has('menu_option') || filled($menuItemsError);
 
         $wizardStep = 1;
         if ($errors->any()) {
@@ -45,7 +41,7 @@
                 $wizardStep = 1;
             } elseif ($errors->hasAny(['visit_date', 'guests'])) {
                 $wizardStep = 2;
-            } elseif ($errors->hasAny(['facility_category', 'facility_id'])) {
+            } elseif ($errors->hasAny(['facility_category', 'facility_id', 'menu_option', 'menu_items']) || $hasMenuErrors) {
                 $wizardStep = 3;
             } else {
                 $wizardStep = 4;
@@ -60,6 +56,8 @@
             'guests' => $errors->first('guests'),
             'facility_category' => $errors->first('facility_category'),
             'facility_id' => $errors->first('facility_id'),
+            'menu_option' => $errors->first('menu_option'),
+            'menu_items' => $menuItemsError,
             'notes' => $errors->first('notes'),
         ];
     @endphp
@@ -104,6 +102,9 @@
             <div class="grid gap-6 lg:grid-cols-12" x-data="bookingWizard({
                 step: {{ $wizardStep }},
                 serverErrors: {{ \Illuminate\Support\Js::from($serverErrors) }},
+                menuOption: {{ \Illuminate\Support\Js::from($initialMenuOption) }},
+                menuItems: {{ \Illuminate\Support\Js::from($menuItemsForWizard) }},
+                menuQuantities: {{ \Illuminate\Support\Js::from($menuQuantities) }},
             })" x-cloak>
                 <div class="lg:col-span-8">
                     <div class="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-xl">
@@ -151,7 +152,7 @@
                         @if ($prefilled)
                             <div class="border-b border-emerald-100 bg-emerald-50/70 px-5 py-4 text-sm text-emerald-900 sm:px-8">
                                 <p class="font-semibold"><i class="fas fa-circle-info mr-1.5" aria-hidden="true"></i> Anda memilih {{ $prefilled->name }} dari halaman sebelumnya.</p>
-                                <p class="mt-0.5 text-emerald-800/80">Kategori otomatis diset ke <span class="font-semibold">{{ Str::title($prefilled->category) }}</span>. Silakan lengkapi langkah berikutnya untuk melihat ketersediaan slot.</p>
+                                <p class="mt-0.5 text-emerald-800/80">Kategori otomatis diset ke <span class="font-semibold">{{ Str::title($prefilled->category) }}</span>. Silakan lengkapi langkah berikutnya untuk melihat kapasitas tamu.</p>
                             </div>
                         @endif
 
@@ -202,7 +203,7 @@
                                 <header class="space-y-1">
                                     <p class="pn-eyebrow text-emerald-600"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Langkah 2</p>
                                     <h2 class="text-2xl font-bold tracking-tight text-slate-900">Jadwal & jumlah tamu</h2>
-                                    <p class="text-sm text-slate-500">Tanggal kunjungan minimal H-0. Kuota slot akan dicek otomatis saat Anda memilih fasilitas.</p>
+                                    <p class="text-sm text-slate-500">Tanggal kunjungan minimal hari ini. Kapasitas tamu akan dicek sesuai tanggal yang dipilih.</p>
                                 </header>
 
                                 <div class="grid gap-6 sm:grid-cols-2">
@@ -260,14 +261,17 @@
                                 <header class="space-y-1">
                                     <p class="pn-eyebrow text-emerald-600"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Langkah 3</p>
                                     <h2 class="text-2xl font-bold tracking-tight text-slate-900">Pilih fasilitas</h2>
-                                    <p class="text-sm text-slate-500">Pilih kategori dulu, lalu fasilitasnya. Ketersediaan slot dicek otomatis sesuai tanggal kunjungan.</p>
+                                    <p class="text-sm text-slate-500">Pilih kategori, lalu pilih fasilitas yang cocok. Sisa kapasitas mengikuti tanggal dan jumlah tamu Anda.</p>
                                 </header>
 
-                                <div class="grid gap-6 sm:grid-cols-2">
+                                <div class="space-y-7">
                                     <div>
-                                        <label class="pn-field-label" for="facility_category">Kategori Fasilitas <span class="text-rose-500">*</span></label>
-                                        <select id="facility_category" name="facility_category" required class="sr-only" tabindex="-1" aria-hidden="true">
-                                            <option value="" data-display-label="Pilih kategori fasilitas">Pilih kategori fasilitas</option>
+                                        <p class="pn-field-label">Kategori fasilitas <span class="text-rose-500">*</span></p>
+                                        <select id="facility_category" name="facility_category" required class="sr-only" tabindex="-1" aria-hidden="true"
+                                            aria-describedby="facility-category-help facility-category-error"
+                                            :aria-invalid="errs.facility_category ? 'true' : 'false'"
+                                            :class="errs.facility_category && 'border-rose-400 focus:border-rose-500 focus:shadow-rose-500/10'">
+                                            <option value="" data-display-label="Pilih kategori" @selected(blank($selectedCategory))>Pilih kategori</option>
                                             @foreach ($groupedFacilities as $category => $facilities)
                                                 @php
                                                     $categoryMinPrice = $facilities->pluck('booking_price_amount')->filter()->min();
@@ -282,55 +286,66 @@
                                                 </option>
                                             @endforeach
                                         </select>
-                                        <div class="rounded-2xl border p-4 transition-colors"
-                                            :class="errs.facility_category ? 'border-rose-300 bg-rose-50/50' : 'border-slate-200 bg-slate-50/70'">
-                                            <div class="relative" data-custom-select-target="facility_category">
-                                                <button type="button"
-                                                    class="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                                                    data-custom-trigger data-placeholder="Pilih kategori fasilitas">
-                                                    <span data-custom-label>{{ $categoryDisplayLabel }}</span>
-                                                    <i class="fas fa-chevron-down text-xs text-slate-400 transition-transform" data-custom-arrow></i>
+                                        <div class="grid gap-3 sm:grid-cols-3" role="group" aria-label="Pilih kategori fasilitas"
+                                            aria-describedby="facility-category-help facility-category-error"
+                                            :aria-invalid="errs.facility_category ? 'true' : 'false'">
+                                            @foreach ($groupedFacilities as $category => $facilities)
+                                                @php
+                                                    $categoryMinPrice = $facilities->pluck('booking_price_amount')->filter()->min();
+                                                    $categoryIcon = match (Str::slug($category)) {
+                                                        'cafe' => 'fa-mug-hot',
+                                                        'camping' => 'fa-campground',
+                                                        'wahana' => 'fa-person-hiking',
+                                                        default => 'fa-layer-group',
+                                                    };
+                                                @endphp
+                                                <button type="button" data-category-button data-category="{{ $category }}"
+                                                    aria-pressed="{{ $selectedCategory === $category ? 'true' : 'false' }}"
+                                                    class="rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 {{ $selectedCategory === $category ? 'border-emerald-500 bg-emerald-50/50 ring-2 ring-emerald-500/20' : '' }}">
+                                                    <span class="flex items-start justify-between gap-3">
+                                                        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                                                            <i class="fas {{ $categoryIcon }}" aria-hidden="true"></i>
+                                                        </span>
+                                                        <span data-category-check class="{{ $selectedCategory === $category ? '' : 'hidden' }} flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-xs text-white">
+                                                            <i class="fas fa-check" aria-hidden="true"></i>
+                                                        </span>
+                                                    </span>
+                                                    <span class="mt-3 block font-semibold text-slate-900">{{ Str::title(str_replace('-', ' ', $category)) }}</span>
+                                                    <span class="mt-1 block text-xs text-slate-500">
+                                                        {{ $facilities->count() }} pilihan
+                                                        @if ($categoryMinPrice)
+                                                            · mulai Rp {{ number_format($categoryMinPrice, 0, ',', '.') }}
+                                                        @endif
+                                                    </span>
                                                 </button>
-                                                <div class="absolute left-0 right-0 z-20 mt-2 hidden rounded-2xl border border-slate-200 bg-white shadow-xl" data-custom-options>
-                                                    <div class="max-h-64 overflow-y-auto py-2">
-                                                        @foreach ($groupedFacilities as $category => $facilities)
-                                                            @php
-                                                                $categoryMinPrice = $facilities->pluck('booking_price_amount')->filter()->min();
-                                                                $categoryPriceSuffix = $categoryMinPrice
-                                                                    ? ' • mulai Rp ' . number_format($categoryMinPrice, 0, ',', '.')
-                                                                    : '';
-                                                                $optionLabel = Str::title($category) . ' (' . $facilities->count() . ' pilihan' . $categoryPriceSuffix . ')';
-                                                            @endphp
-                                                            <button type="button"
-                                                                class="flex w-full flex-col items-start gap-1 rounded-xl px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-50"
-                                                                data-custom-option data-value="{{ $category }}" data-label="{{ $optionLabel }}">
-                                                                <span class="font-semibold text-slate-900">{{ $optionLabel }}</span>
-                                                                <span class="text-xs text-slate-400">Klik untuk memilih kategori ini.</span>
-                                                            </button>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <p class="mt-3 text-xs text-slate-400">Contoh kategori: Camping, Activity, Venue. Sesuaikan dengan kebutuhan Anda.</p>
+                                            @endforeach
                                         </div>
-                                        <p class="mt-1.5 text-xs text-rose-600" x-show="errs.facility_category" x-text="errs.facility_category" x-cloak></p>
+                                        <p id="facility-category-help" class="mt-1.5 text-xs text-slate-500">Pilihan fasilitas akan mengikuti kategori yang Anda pilih.</p>
+                                        <p id="facility-category-error" class="mt-1.5 text-xs text-rose-600" x-show="errs.facility_category" x-text="errs.facility_category" aria-live="polite" x-cloak></p>
                                     </div>
 
                                     <div>
-                                        <label class="pn-field-label" for="facility_id">Fasilitas yang Dibooking <span class="text-rose-500">*</span></label>
+                                        <p class="pn-field-label">Pilih fasilitas <span class="text-rose-500">*</span></p>
                                         <select id="facility_id" name="facility_id" required class="sr-only" tabindex="-1" aria-hidden="true"
+                                            aria-describedby="facility-help facility-availability-hint facility-error"
+                                            :aria-invalid="errs.facility_id ? 'true' : 'false'"
+                                            :class="errs.facility_id && 'border-rose-400 focus:border-rose-500 focus:shadow-rose-500/10'"
+                                            @disabled(blank($selectedCategory) || ! $groupedFacilities->has($selectedCategory))
                                             data-availability-url="{{ route('booking.availability') }}">
-                                            <option value="" data-display-label="Pilih fasilitas sesuai kategori">Pilih fasilitas sesuai kategori</option>
+                                            <option value="" @selected(blank($selectedFacilityId))>Pilih kategori terlebih dahulu</option>
                                             @foreach ($groupedFacilities as $category => $facilities)
                                                 @foreach ($facilities as $facility)
                                                     @php
                                                         $baseLabel = trim($facility->name . ($facility->booking_price_label ? ' — ' . $facility->booking_price_label : ''));
-                                                        $capacityLabel = $facility->capacity_per_day ? 'Kuota harian ' . $facility->capacity_per_day : 'Kuota fleksibel';
-                                                        $optionDisplayLabel = $baseLabel . ' (' . $capacityLabel . ')';
+                                                        $capacityLabel = $facility->capacity_per_day > 0
+                                                            ? 'Maks. ' . $facility->capacity_per_day . ' tamu/hari'
+                                                            : 'Tidak dibatasi per hari';
+                                                        $optionDisplayLabel = $baseLabel . ' · ' . $capacityLabel;
                                                     @endphp
                                                     <option value="{{ $facility->id }}" data-category="{{ $category }}"
                                                         data-capacity="{{ $facility->capacity_per_day }}"
                                                         data-base-label="{{ $baseLabel }}"
+                                                        data-description="{{ $facility->description }}"
                                                         data-price="{{ $facility->booking_price_amount ?? '' }}"
                                                         data-price-label="{{ $facility->booking_price_label ?? '' }}"
                                                         data-display-label="{{ $optionDisplayLabel }}"
@@ -340,45 +355,115 @@
                                                 @endforeach
                                             @endforeach
                                         </select>
-                                        <div class="rounded-2xl border p-4 transition-colors"
-                                            :class="errs.facility_id ? 'border-rose-300 bg-rose-50/50' : 'border-slate-200 bg-slate-50/70'">
-                                            <div class="relative" data-custom-select-target="facility_id">
-                                                <button type="button"
-                                                    class="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                                                    data-custom-trigger data-placeholder="Pilih fasilitas sesuai kategori">
-                                                    <span data-custom-label>{{ $facilityDisplayLabel }}</span>
-                                                    <i class="fas fa-chevron-down text-xs text-slate-400 transition-transform" data-custom-arrow></i>
-                                                </button>
-                                                <div class="absolute left-0 right-0 z-20 mt-2 hidden rounded-2xl border border-slate-200 bg-white shadow-xl" data-custom-options>
-                                                    <div class="max-h-72 overflow-y-auto py-2">
-                                                        @foreach ($groupedFacilities as $category => $facilities)
-                                                            @foreach ($facilities as $facility)
-                                                                @php
-                                                                    $baseLabel = trim($facility->name . ($facility->booking_price_label ? ' — ' . $facility->booking_price_label : ''));
-                                                                    $capacityLabel = $facility->capacity_per_day ? 'Kuota harian ' . $facility->capacity_per_day : 'Kuota fleksibel';
-                                                                    $optionDisplayLabel = $baseLabel . ' (' . $capacityLabel . ')';
-                                                                @endphp
-                                                                <button type="button"
-                                                                    class="flex w-full flex-col items-start gap-1 rounded-xl px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-50"
-                                                                    data-custom-option data-target-select="facility_id" data-target-category="{{ $category }}"
-                                                                    data-value="{{ $facility->id }}" data-label="{{ $optionDisplayLabel }}">
-                                                                    <span class="font-semibold text-slate-900">{{ $baseLabel }}</span>
-                                                                    <span class="text-xs text-slate-400">{{ $capacityLabel }}</span>
-                                                                    @if ($facility->booking_price_label)
-                                                                        <span class="text-xs font-medium text-emerald-600">{{ $facility->booking_price_label }}</span>
-                                                                    @endif
-                                                                </button>
-                                                            @endforeach
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <p class="mt-3 text-xs font-medium text-emerald-600" id="facility-price-hint">Pilih fasilitas untuk melihat harga referensi.</p>
-                                            <p class="mt-1.5 text-xs text-slate-500" id="facility-availability-hint">Pilih kategori lalu tanggal untuk mengecek slot otomatis.</p>
+                                        <div id="facility-card-grid" class="grid gap-3 sm:grid-cols-2" role="group" aria-label="Pilih fasilitas yang akan dibooking"
+                                            aria-describedby="facility-help facility-availability-hint facility-error"
+                                            :aria-invalid="errs.facility_id ? 'true' : 'false'">
+                                            @foreach ($groupedFacilities as $category => $facilities)
+                                                @foreach ($facilities as $facility)
+                                                    @php
+                                                        $capacityLabel = $facility->capacity_per_day > 0
+                                                            ? 'Maks. ' . $facility->capacity_per_day . ' tamu/hari'
+                                                            : 'Tidak dibatasi per hari';
+                                                        $isSelectedFacility = (string) $selectedFacilityId === (string) $facility->id;
+                                                        $isFacilityVisible = $selectedCategory === $category;
+                                                    @endphp
+                                                    <button type="button" data-facility-card data-facility-id="{{ $facility->id }}"
+                                                        data-category="{{ $category }}" data-capacity-label="{{ $capacityLabel }}"
+                                                        aria-pressed="{{ $isSelectedFacility ? 'true' : 'false' }}"
+                                                        @disabled(! $isFacilityVisible)
+                                                        @if (! $isFacilityVisible) hidden @endif
+                                                        class="w-full rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-emerald-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 disabled:cursor-not-allowed disabled:opacity-50 {{ $isSelectedFacility ? 'border-emerald-500 bg-emerald-50/50 ring-2 ring-emerald-500/20' : '' }}">
+                                                        <span class="flex items-start justify-between gap-3">
+                                                            <span class="font-semibold text-slate-900">{{ $facility->name }}</span>
+                                                            <span data-facility-check class="{{ $isSelectedFacility ? '' : 'hidden' }} flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs text-white">
+                                                                <i class="fas fa-check" aria-hidden="true"></i>
+                                                            </span>
+                                                        </span>
+                                                        <span class="mt-1 block min-h-10 text-xs leading-relaxed text-slate-500">
+                                                            {{ $facility->description ?: 'Detail fasilitas dapat ditanyakan kepada tim kami.' }}
+                                                        </span>
+                                                        <span class="mt-3 flex flex-wrap items-center gap-2">
+                                                            <span data-facility-capacity class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">{{ $capacityLabel }}</span>
+                                                            @if ($facility->booking_price_label)
+                                                                <span class="text-xs font-semibold text-emerald-700">{{ $facility->booking_price_label }}</span>
+                                                            @endif
+                                                        </span>
+                                                    </button>
+                                                @endforeach
+                                            @endforeach
                                         </div>
-                                        <p class="mt-1.5 text-xs text-rose-600" x-show="errs.facility_id" x-text="errs.facility_id" x-cloak></p>
+                                        <p id="facility-empty-state" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center text-sm text-slate-500" @if (filled($selectedCategory)) hidden @endif>
+                                            Pilih kategori di atas untuk melihat fasilitas yang tersedia.
+                                        </p>
+                                        <p id="facility-help" class="mt-1.5 text-xs text-slate-500">Kapasitas dihitung dalam jumlah tamu untuk tanggal yang dipilih.</p>
+                                        <p id="facility-availability-hint" class="mt-1.5 text-sm text-slate-600" aria-live="polite">Pilih fasilitas untuk melihat sisa kapasitas.</p>
+                                        <p id="facility-error" class="mt-1.5 text-xs text-rose-600" x-show="errs.facility_id" x-text="errs.facility_id" aria-live="polite" x-cloak></p>
                                     </div>
                                 </div>
+
+                                <section x-show="isCafe" x-cloak class="space-y-5 rounded-2xl border border-amber-200 bg-amber-50/70 p-5 sm:p-6" aria-labelledby="cafe-menu-title">
+                                    <div>
+                                        <p class="text-xs font-bold uppercase tracking-[0.16em] text-amber-700">Reservasi kafe</p>
+                                        <h3 id="cafe-menu-title" class="mt-1 text-lg font-bold text-slate-900">Ingin pesan menu sekarang?</h3>
+                                        <p class="mt-1 text-sm text-slate-600">Anda bisa memilih menu sekarang atau reservasi meja saja dan pesan langsung di kafe.</p>
+                                    </div>
+
+                                    <fieldset id="menu_option" aria-describedby="menu-option-error">
+                                        <legend class="sr-only">Pilih reservasi dengan menu atau tanpa menu</legend>
+                                        <div class="grid gap-3 sm:grid-cols-2">
+                                            <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 transition has-[:checked]:border-emerald-500 has-[:checked]:ring-2 has-[:checked]:ring-emerald-500/20">
+                                                <input type="radio" name="menu_option" value="without_menu" x-model="form.menu_option" @checked($initialMenuOption === 'without_menu') @change="errs.menu_option = ''; errs.menu_items = '';" :required="isCafe" :disabled="!isCafe" class="mt-1 accent-emerald-600">
+                                                <span>
+                                                    <span class="block font-semibold text-slate-900">Reservasi meja saja</span>
+                                                    <span class="mt-1 block text-xs leading-relaxed text-slate-500">Pilih menu dan bayar langsung di kafe.</span>
+                                                </span>
+                                            </label>
+                                            <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 transition has-[:checked]:border-emerald-500 has-[:checked]:ring-2 has-[:checked]:ring-emerald-500/20">
+                                                <input type="radio" name="menu_option" value="with_menu" x-model="form.menu_option" @checked($initialMenuOption === 'with_menu') @change="errs.menu_option = ''; errs.menu_items = '';" :required="isCafe" :disabled="!isCafe || {{ $menuItems->isEmpty() ? 'true' : 'false' }}" class="mt-1 accent-emerald-600">
+                                                <span>
+                                                    <span class="block font-semibold text-slate-900">Reservasi dengan menu</span>
+                                                    <span class="mt-1 block text-xs leading-relaxed text-slate-500">Pilih makanan atau minuman yang ingin disiapkan.</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </fieldset>
+                                    <p id="menu-option-error" class="text-xs text-rose-600" x-show="errs.menu_option" x-text="errs.menu_option" aria-live="polite" x-cloak></p>
+
+                                    <div x-show="form.menu_option === 'with_menu'" x-cloak class="space-y-4">
+                                        @if ($menuItems->isNotEmpty())
+                                            <div class="grid gap-3 sm:grid-cols-2">
+                                                @foreach ($menuItems as $menuItem)
+                                                    <article class="rounded-xl border border-slate-200 bg-white p-4">
+                                                        <div class="flex items-start justify-between gap-3">
+                                                            <div>
+                                                                <p class="font-semibold text-slate-900">{{ $menuItem->name }}</p>
+                                                                @if ($menuItem->short_description)
+                                                                    <p class="mt-1 text-xs leading-relaxed text-slate-500">{{ $menuItem->short_description }}</p>
+                                                                @endif
+                                                                <p class="mt-2 text-sm font-semibold text-emerald-700">Rp {{ number_format($menuItem->price, 0, ',', '.') }}</p>
+                                                            </div>
+                                                            <label class="w-24 shrink-0">
+                                                                <span class="block text-xs font-semibold text-slate-600">Jumlah</span>
+                                                                <input type="number" id="{{ $loop->first ? 'menu_items' : 'menu_items_'.$menuItem->id }}"
+                                                                    name="menu_items[{{ $menuItem->id }}]" min="0" max="50" inputmode="numeric"
+                                                                    x-model.number="menuQuantities[{{ $menuItem->id }}]" @input="errs.menu_items = ''"
+                                                                    :disabled="!isCafe || form.menu_option !== 'with_menu'"
+                                                                    class="pn-field mt-1 !px-2 !py-2 text-center" :class="errs.menu_items && 'border-rose-400'" aria-label="Jumlah {{ $menuItem->name }}"
+                                                                    value="{{ $menuQuantities[$menuItem->id] ?? 0 }}">
+                                                            </label>
+                                                        </div>
+                                                    </article>
+                                                @endforeach
+                                            </div>
+                                            <p class="text-xs text-slate-500">Isi jumlah untuk menu yang dipilih; biarkan 0 untuk menu yang tidak dipesan.</p>
+                                        @else
+                                            <div class="rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm text-amber-800">
+                                                Menu kafe belum tersedia untuk dipesan online. Silakan pilih “Reservasi meja saja” dan pesan langsung di lokasi.
+                                            </div>
+                                        @endif
+                                        <p class="text-xs text-rose-600" x-show="errs.menu_items" x-text="errs.menu_items" aria-live="polite" x-cloak></p>
+                                    </div>
+                                </section>
                             </div>
 
                             {{-- Step 4: Konfirmasi --}}
@@ -440,6 +525,13 @@
                                         </dd>
                                     </div>
                                 </dl>
+
+                                <div x-show="isCafe" x-cloak class="rounded-2xl border border-emerald-100 bg-emerald-50/60 px-5 py-4">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Pesanan kafe</p>
+                                    <p class="mt-1 text-sm font-semibold text-slate-800" x-text="menuSummary"></p>
+                                    <p x-show="form.menu_option === 'with_menu' && selectedMenuItems.length" class="mt-1 text-xs font-medium text-emerald-700" x-text="'Perkiraan total menu: ' + menuSubtotalLabel"></p>
+                                    <button type="button" class="mt-2 text-xs font-semibold text-emerald-700 hover:underline" @click="goTo(3)">Ubah pilihan menu</button>
+                                </div>
 
                                 <div>
                                     <label class="pn-field-label" for="notes">Catatan Tambahan</label>
@@ -534,7 +626,7 @@
                                     <li class="flex items-center justify-between gap-2">
                                         <span>{{ $facility->name }}</span>
                                         <span class="shrink-0 text-xs font-medium {{ $facility->capacity_per_day ? 'text-emerald-600' : 'text-slate-400' }}">
-                                            {{ $facility->capacity_per_day ? $facility->capacity_per_day . ' slot/hari' : 'Tanpa batas' }}
+                                            {{ $facility->capacity_per_day ? $facility->capacity_per_day . ' tamu/hari' : 'Tidak dibatasi' }}
                                         </span>
                                     </li>
                                 @endforeach
@@ -555,10 +647,13 @@
             return {
                 step: options.step || 1,
                 maxStep: options.step || 1,
-                stepTitles: { 1: 'Data Diri', 2: 'Jadwal', 3: 'Fasilitas', 4: 'Konfirmasi' },
+                stepTitles: { 1: 'Data Diri', 2: 'Jadwal', 3: 'Fasilitas & menu', 4: 'Konfirmasi' },
                 errs: {},
-                form: { name: '', email: '', phone: '', visit_date: '', guests: '', facility_category: '', facility_id: '', notes: '' },
+                form: { name: '', email: '', phone: '', visit_date: '', guests: '', facility_category: '', facility_id: '', menu_option: options.menuOption || 'without_menu', notes: '' },
                 labels: { category: '', facility: '' },
+                isCafe: false,
+                menuItems: options.menuItems || [],
+                menuQuantities: options.menuQuantities || {},
 
                 init() {
                     Object.entries(options.serverErrors || {}).forEach(([key, message]) => {
@@ -588,6 +683,30 @@
                     const opt = fac && fac.value ? fac.selectedOptions[0] : null;
                     this.labels.facility = opt ? (opt.dataset.baseLabel || '') : '';
                     this.labels.price = opt ? (opt.dataset.priceLabel || '') : '';
+                    this.isCafe = cat?.value === 'cafe';
+                },
+
+                get selectedMenuItems() {
+                    return this.menuItems
+                        .filter(item => Number(this.menuQuantities[item.id] || 0) > 0)
+                        .map(item => {
+                            const quantity = Number(this.menuQuantities[item.id]);
+                            return { ...item, quantity, subtotal: quantity * Number(item.price) };
+                        });
+                },
+
+                get menuSubtotal() {
+                    return this.selectedMenuItems.reduce((total, item) => total + item.subtotal, 0);
+                },
+
+                get menuSubtotalLabel() {
+                    return 'Rp ' + this.menuSubtotal.toLocaleString('id-ID');
+                },
+
+                get menuSummary() {
+                    if (this.form.menu_option !== 'with_menu') return 'Reservasi meja saja; menu dipesan langsung di kafe.';
+                    if (this.selectedMenuItems.length === 0) return 'Belum ada menu yang dipilih.';
+                    return this.selectedMenuItems.map(item => `${item.name} x ${item.quantity}`).join(', ');
                 },
 
                 get formattedDate() {
@@ -604,12 +723,24 @@
                     const keysByStep = {
                         1: ['name', 'email', 'phone'],
                         2: ['visit_date', 'guests'],
-                        3: ['facility_category', 'facility_id'],
+                        3: ['facility_category', 'facility_id', 'menu_option', 'menu_items'],
                         4: ['notes'],
                     };
                     const key = (keysByStep[n] || []).find(k => this.errs[k]);
                     if (!key) return;
-                    let el = document.getElementById(key);
+                    let el;
+                    if (key === 'facility_category') {
+                        const categoryButtons = Array.from(document.querySelectorAll('[data-category-button]'));
+                        el = categoryButtons.find(button => button.dataset.category === this.form.facility_category) || categoryButtons[0];
+                    } else if (key === 'facility_id') {
+                        const facilityButtons = Array.from(document.querySelectorAll('[data-facility-card]'));
+                        el = facilityButtons.find(button => button.dataset.facilityId === this.form.facility_id && !button.disabled)
+                            || facilityButtons.find(button => !button.hidden && !button.disabled);
+                    } else {
+                        el = key === 'menu_option'
+                            ? document.querySelector('input[name="menu_option"]:not(:disabled)')
+                            : document.getElementById(key);
+                    }
                     if (el && el.offsetParent === null) {
                         const wrapper = document.querySelector(`[data-custom-select-target="${key}"] [data-custom-trigger]`);
                         if (wrapper) el = wrapper;
@@ -639,9 +770,28 @@
                         else if (f.visit_date < today) setErr('visit_date', 'Tanggal kunjungan tidak boleh di masa lalu.');
                         if (!f.guests) setErr('guests', 'Jumlah tamu wajib dipilih.');
                     } else if (n === 3) {
-                        clear(['facility_category', 'facility_id']);
+                        clear(['facility_category', 'facility_id', 'menu_option', 'menu_items']);
                         if (!f.facility_category) setErr('facility_category', 'Pilih kategori fasilitas terlebih dahulu.');
-                        if (!f.facility_id) setErr('facility_id', 'Pilih fasilitas yang akan dibooking.');
+                        else if (!f.facility_id) setErr('facility_id', 'Pilih fasilitas yang akan dibooking.');
+                        else if (document.getElementById('facility_id')?.selectedOptions?.[0]?.disabled) {
+                            setErr('facility_id', 'Kapasitas tidak cukup untuk jumlah tamu yang dipilih. Ubah jumlah tamu, fasilitas, atau tanggal.');
+                        }
+
+                        if (this.isCafe && !f.menu_option) {
+                            setErr('menu_option', 'Pilih reservasi dengan menu atau tanpa menu.');
+                        } else if (this.isCafe && f.menu_option === 'with_menu') {
+                            const hasInvalidQuantity = this.menuItems.some(item => {
+                                const value = this.menuQuantities[item.id];
+                                const quantity = Number(value);
+                                return value === '' || !Number.isInteger(quantity) || quantity < 0 || quantity > 50;
+                            });
+
+                            if (hasInvalidQuantity) {
+                                setErr('menu_items', 'Masukkan jumlah bulat antara 0 dan 50. Gunakan 0 jika tidak memilih menu tersebut.');
+                            } else if (this.selectedMenuItems.length === 0) {
+                                setErr('menu_items', 'Pilih setidaknya satu menu untuk melanjutkan.');
+                            }
+                        }
                     }
 
                     if (!ok) this.$nextTick(() => this.focusFirstError(n));
@@ -692,32 +842,76 @@
             const categorySelect = document.getElementById('facility_category');
             const facilitySelect = document.getElementById('facility_id');
             const dateInput = document.getElementById('visit_date');
+            const guestsSelect = document.getElementById('guests');
             const hint = document.getElementById('facility-availability-hint');
-            const priceHint = document.getElementById('facility-price-hint');
             const availabilityUrl = facilitySelect?.dataset?.availabilityUrl;
             const facilityOptions = Array.from(facilitySelect.options).filter(opt => opt.dataset.category);
-            const facilityCustomOptions = document.querySelectorAll('[data-custom-option][data-target-select="facility_id"]');
+            const categoryButtons = Array.from(document.querySelectorAll('[data-category-button]'));
+            const facilityCards = Array.from(document.querySelectorAll('[data-facility-card]'));
+            const facilityEmptyState = document.getElementById('facility-empty-state');
+
+            const syncCategoryButtons = () => {
+                categoryButtons.forEach(button => {
+                    const selected = button.dataset.category === categorySelect.value;
+                    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+                    button.classList.toggle('border-slate-200', !selected);
+                    button.classList.toggle('border-emerald-500', selected);
+                    button.classList.toggle('bg-white', !selected);
+                    button.classList.toggle('bg-emerald-50/50', selected);
+                    button.classList.toggle('ring-2', selected);
+                    button.classList.toggle('ring-emerald-500/20', selected);
+                    button.querySelector('[data-category-check]')?.classList.toggle('hidden', !selected);
+                });
+            };
+
+            const syncFacilityCards = () => {
+                const selectedCategory = categorySelect.value;
+                const selectedId = facilitySelect.value;
+
+                facilityCards.forEach(button => {
+                    const option = facilityOptions.find(item => item.value === button.dataset.facilityId);
+                    const visible = Boolean(selectedCategory) && button.dataset.category === selectedCategory;
+                    const selected = button.dataset.facilityId === selectedId;
+                    button.hidden = !visible;
+                    button.disabled = !visible || !option || option.disabled;
+                    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+                    button.classList.toggle('border-slate-200', !selected);
+                    button.classList.toggle('border-emerald-500', selected);
+                    button.classList.toggle('bg-white', !selected);
+                    button.classList.toggle('bg-emerald-50/50', selected);
+                    button.classList.toggle('ring-2', selected);
+                    button.classList.toggle('ring-emerald-500/20', selected);
+                    button.querySelector('[data-facility-check]')?.classList.toggle('hidden', !selected);
+
+                    const capacityLabel = button.querySelector('[data-facility-capacity]');
+                    if (capacityLabel) {
+                        const unavailable = Boolean(option?.disabled);
+                        const hasAvailability = Boolean(option?.dataset?.availabilityText);
+                        capacityLabel.textContent = option?.dataset?.availabilityText || button.dataset.capacityLabel;
+                        capacityLabel.classList.toggle('bg-rose-50', unavailable);
+                        capacityLabel.classList.toggle('text-rose-700', unavailable);
+                        capacityLabel.classList.toggle('bg-emerald-50', hasAvailability && !unavailable);
+                        capacityLabel.classList.toggle('text-emerald-700', hasAvailability && !unavailable);
+                        capacityLabel.classList.toggle('bg-slate-100', !hasAvailability && !unavailable);
+                        capacityLabel.classList.toggle('text-slate-600', !hasAvailability && !unavailable);
+                    }
+                });
+
+                if (facilityEmptyState) {
+                    const hasFacilities = facilityCards.some(button => button.dataset.category === selectedCategory);
+                    facilityEmptyState.hidden = Boolean(selectedCategory) && hasFacilities;
+                }
+            };
 
             const setHint = (message, tone = 'text-slate-500') => {
                 hint.textContent = message;
-                hint.className = `text-xs mt-1.5 ${tone}`;
-            };
-
-            const resetPriceHint = () => {
-                if (!priceHint) return;
-                priceHint.textContent = 'Pilih fasilitas untuk melihat harga referensi.';
-                priceHint.className = 'mt-3 text-xs font-medium text-slate-500';
-            };
-
-            const setPriceHint = (message, tone = 'text-emerald-600') => {
-                if (!priceHint) return;
-                priceHint.textContent = message;
-                priceHint.className = `mt-3 text-xs font-medium ${tone}`;
+                hint.className = `mt-1.5 text-xs ${tone}`;
             };
 
             const filterFacilities = () => {
                 const selectedCategory = categorySelect.value;
                 let hasVisible = false;
+                facilitySelect.disabled = !selectedCategory;
 
                 facilityOptions.forEach(option => {
                     const match = !selectedCategory || option.dataset.category === selectedCategory;
@@ -725,43 +919,29 @@
                     if (!match && option.selected) {
                         facilitySelect.value = '';
                         facilitySelect.dispatchEvent(new Event('change', { bubbles: true }));
-                        resetPriceHint();
                     }
                     if (match) {
                         hasVisible = true;
                     }
                 });
 
-                facilityCustomOptions.forEach(button => {
-                    const match = !selectedCategory || button.dataset.targetCategory === selectedCategory;
-                    button.classList.toggle('hidden', !match);
-                });
+                syncCategoryButtons();
+                syncFacilityCards();
 
                 if (!selectedCategory) {
                     setHint('Pilih kategori terlebih dahulu untuk menampilkan fasilitas.');
                 } else if (!hasVisible) {
                     setHint('Belum ada fasilitas di kategori ini. Hubungi admin.', 'text-amber-600');
-                }
-            };
-
-            const updatePriceHint = () => {
-                const selectedOption = facilitySelect?.selectedOptions?.[0];
-                if (!selectedOption || !selectedOption.value) {
-                    resetPriceHint();
-                    return;
-                }
-
-                const priceLabel = selectedOption.dataset.priceLabel;
-                if (priceLabel) {
-                    setPriceHint(`Harga referensi: ${priceLabel}`);
-                } else {
-                    resetPriceHint();
+                } else if (!dateInput.value) {
+                    setHint('Pilih tanggal kunjungan untuk mengecek kapasitas tamu.');
+                } else if (!facilitySelect.value) {
+                    setHint('Pilih fasilitas untuk melihat kapasitas yang tersisa.');
                 }
             };
 
             const applyAvailability = (data) => {
                 const selectedId = facilitySelect.value;
-                let selectedMessage = 'Silakan pilih fasilitas untuk melihat ketersediaan.';
+                let selectedMessage = 'Pilih fasilitas untuk melihat kapasitas tamu yang tersisa.';
                 let tone = 'text-slate-500';
 
                 facilityOptions.forEach(option => {
@@ -770,29 +950,38 @@
 
                     const baseLabel = option.dataset.baseLabel || option.textContent.split(' (')[0];
                     const isFull = info.is_full;
-                    option.disabled = isFull;
-                    let capacityText = 'Kuota fleksibel';
+                    const canAccommodateGuests = info.can_accommodate_guests;
+                    const requestedGuests = Math.max(Number(guestsSelect?.value || 1), 1);
+                    option.disabled = !canAccommodateGuests;
+                    let capacityText = 'Tidak dibatasi per hari';
                     if (isFull) {
-                        capacityText = 'Penuh';
+                        capacityText = 'Kapasitas penuh';
+                    } else if (!canAccommodateGuests) {
+                        capacityText = `Sisa ${info.remaining} tamu (perlu ${requestedGuests})`;
                     } else if (info.remaining !== null) {
-                        capacityText = `${info.remaining} slot tersisa`;
+                        capacityText = `${info.remaining} tamu tersisa`;
                     }
-                    option.textContent = `${baseLabel} (${capacityText})`;
+                    option.dataset.availabilityText = capacityText;
+                    option.textContent = `${baseLabel} · ${capacityText}`;
 
                     if (option.value === selectedId) {
-                        if (isFull) {
-                            selectedMessage = `${info.name} sudah penuh di tanggal tersebut.`;
+                        if (!canAccommodateGuests && isFull) {
+                            selectedMessage = `Kapasitas ${info.name} penuh pada tanggal tersebut. Pilih fasilitas atau tanggal lain.`;
+                            tone = 'text-rose-600';
+                        } else if (!canAccommodateGuests) {
+                            selectedMessage = `${info.name}: hanya tersisa ${info.remaining} tamu, belum cukup untuk ${requestedGuests} orang. Ubah jumlah tamu, fasilitas, atau tanggal.`;
                             tone = 'text-rose-600';
                         } else if (info.remaining !== null) {
-                            selectedMessage = `${info.name}: tersisa ${info.remaining} slot dari ${info.capacity} kuota.`;
+                            selectedMessage = `${info.name}: tersisa ${info.remaining} dari ${info.capacity} kapasitas tamu pada tanggal ini.`;
                             tone = 'text-emerald-600';
                         } else {
-                            selectedMessage = `${info.name}: kuota fleksibel, langsung lanjutkan booking.`;
+                            selectedMessage = `${info.name}: kapasitas tamu tidak dibatasi per hari.`;
                             tone = 'text-emerald-600';
                         }
                     }
                 });
 
+                syncFacilityCards();
                 setHint(selectedMessage, tone);
             };
 
@@ -801,10 +990,11 @@
                     return;
                 }
 
-                setHint('Memeriksa ketersediaan slot...', 'text-sky-600');
+                setHint('Memeriksa kapasitas tamu...', 'text-sky-600');
 
                 try {
-                    const response = await fetch(`${availabilityUrl}?date=${dateInput.value}`);
+                    const requestedGuests = Math.max(Number(guestsSelect?.value || 1), 1);
+                    const response = await fetch(`${availabilityUrl}?date=${dateInput.value}&guests=${requestedGuests}`);
                     if (!response.ok) {
                         throw new Error('Gagal mengambil data');
                     }
@@ -818,14 +1008,33 @@
             categorySelect?.addEventListener('change', () => {
                 filterFacilities();
                 fetchAvailability();
-                updatePriceHint();
+            });
+
+            categoryButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    if (categorySelect.value === button.dataset.category) return;
+
+                    categorySelect.value = button.dataset.category;
+                    categorySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+            });
+
+            facilityCards.forEach(button => {
+                button.addEventListener('click', () => {
+                    const option = facilityOptions.find(item => item.value === button.dataset.facilityId);
+                    if (!option || option.disabled || button.hidden) return;
+
+                    facilitySelect.value = button.dataset.facilityId;
+                    facilitySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                });
             });
 
             facilitySelect?.addEventListener('change', () => {
+                syncFacilityCards();
                 fetchAvailability();
-                updatePriceHint();
             });
             dateInput?.addEventListener('change', () => fetchAvailability());
+            guestsSelect?.addEventListener('change', () => fetchAvailability());
 
             const initCustomSelects = () => {
                 document.querySelectorAll('[data-custom-select-target]').forEach(wrapper => {
@@ -914,10 +1123,6 @@
             filterFacilities();
             if (dateInput?.value) {
                 fetchAvailability();
-            }
-            updatePriceHint();
-            if (!facilitySelect.value) {
-                resetPriceHint();
             }
             initCustomSelects();
         });

@@ -29,7 +29,7 @@ class BookingController extends Controller
     {
         $statusOptions = $this->statusOptions();
 
-        $query = Booking::query()->with('facility');
+        $query = Booking::query()->with(['facility', 'menuItems']);
 
         $statusFilter = $request->input('status');
         if ($statusFilter && ! array_key_exists($statusFilter, $statusOptions)) {
@@ -157,7 +157,7 @@ class BookingController extends Controller
 
     public function edit(Booking $booking): View
     {
-        $booking->load('facility');
+        $booking->load(['facility', 'menuItems']);
 
         return view('admin.booking.edit', [
             'booking' => $booking,
@@ -255,6 +255,21 @@ class BookingController extends Controller
         }
 
         return $redirect;
+    }
+
+    public function destroy(Request $request, Booking $booking): RedirectResponse
+    {
+        $bookingCode = $booking->booking_code;
+        $booking->delete();
+
+        $redirectQuery = array_filter(
+            $request->only(['q', 'status', 'from', 'to', 'sort']),
+            fn ($value) => filled($value)
+        );
+
+        return redirect()
+            ->route('admin.bookings.index', $redirectQuery)
+            ->with('admin_success', 'Booking '.$bookingCode.' berhasil dihapus.');
     }
 
     private function statusOptions(): array

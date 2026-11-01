@@ -21,6 +21,19 @@
                 <li>Tanggal Kunjungan: {{ \Carbon\Carbon::parse($booking->visit_date)->translatedFormat('d M Y') }}</li>
                 <li>Fasilitas: {{ optional($booking->facility)->name ?? '-' }}</li>
                 <li>Jumlah Tamu: {{ $booking->guests }} orang</li>
+                @if ($booking->package === 'cafe' || $booking->facility?->category === 'cafe')
+                    @if ($booking->menuItems->isNotEmpty())
+                        <li>Menu Kafe:
+                            <ul style="padding-left: 18px;">
+                                @foreach ($booking->menuItems as $menuItem)
+                                    <li>{{ $menuItem->menu_name }} x {{ $menuItem->quantity }} — Rp {{ number_format($menuItem->unit_price * $menuItem->quantity, 0, ',', '.') }}</li>
+                                @endforeach
+                            </ul>
+                        </li>
+                    @else
+                        <li>Reservasi Kafe: meja saja, menu dipesan langsung di lokasi</li>
+                    @endif
+                @endif
             </ul>
         </div>
 

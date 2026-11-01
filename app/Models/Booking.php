@@ -28,4 +28,9 @@ class Booking extends Model
     {
         return $this->belongsTo(Facility::class);
     }
+
+    public function menuItems()
+    {
+        return $this->hasMany(BookingMenuItem::class);
+    }
 }

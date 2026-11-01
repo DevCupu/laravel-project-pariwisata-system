@@ -15,6 +15,8 @@ class BookingSubmittedMail extends Mailable
 
     public function build(): self
     {
+        $this->booking->loadMissing(['facility', 'menuItems']);
+
         return $this
             ->subject('Permintaan Booking '.$this->booking->booking_code.' diterima')
             ->view('emails.booking.submitted')

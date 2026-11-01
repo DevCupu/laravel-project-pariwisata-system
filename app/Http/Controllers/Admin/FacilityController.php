@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Booking;
 use App\Models\Facility;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,16 @@ class FacilityController extends Controller
 {
     public function index(Request $request): View
     {
+        $validated = $request->validate([
+            'date' => ['nullable', 'date'],
+        ]);
+        $today = now()->toDateString();
+        $nextActiveBookingDate = Booking::query()
+            ->whereIn('status', Booking::ACTIVE_STATUSES)
+            ->whereDate('visit_date', '>=', $today)
+            ->min('visit_date');
+        $selectedDate = $validated['date'] ?? $nextActiveBookingDate ?? $today;
+
         $query = Facility::query();
 
         $statusFilter = $request->input('status');
@@ -26,14 +37,30 @@ class FacilityController extends Controller
             $query->where('category', $category);
         }
 
-        if ($search = $request->input('q')) {
+        if ($search = trim((string) $request->input('q'))) {
             $query->where(function ($builder) use ($search) {
                 $builder->where('name', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
+        $usageForDate = function ($bookingQuery) use ($selectedDate) {
+            $bookingQuery->whereDate('visit_date', $selectedDate)
+                ->whereIn('status', Booking::ACTIVE_STATUSES);
+        };
+        $confirmedForDate = fn ($bookingQuery) => $bookingQuery
+            ->whereDate('visit_date', $selectedDate)
+            ->where('status', 'confirmed');
+        $pendingForDate = fn ($bookingQuery) => $bookingQuery
+            ->whereDate('visit_date', $selectedDate)
+            ->where('status', 'pending');
+
         $facilities = $query
+            ->withSum(['bookings as booked_guests' => $usageForDate], 'guests')
+            ->withCount([
+                'bookings as confirmed_booking_count' => $confirmedForDate,
+                'bookings as pending_booking_count' => $pendingForDate,
+            ])
             ->orderBy('category')
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -59,6 +86,7 @@ class FacilityController extends Controller
             'stats' => $stats,
             'statusFilter' => $statusFilter,
             'categoryFilter' => $category,
+            'selectedDate' => $selectedDate,
         ]);
     }
 
@@ -109,13 +137,19 @@ class FacilityController extends Controller
             ->with('admin_success', 'Data fasilitas berhasil diperbarui.');
     }
 
-    public function destroy(Facility $facility): RedirectResponse
+    public function destroy(Request $request, Facility $facility): RedirectResponse
     {
+        $facilityName = $facility->name;
         $facility->delete();
 
+        $redirectQuery = array_filter(
+            $request->only(['q', 'status', 'category', 'date']),
+            fn ($value) => filled($value)
+        );
+
         return redirect()
-            ->route('admin.facilities.index')
-            ->with('admin_success', 'Fasilitas berhasil dihapus.');
+            ->route('admin.facilities.index', $redirectQuery)
+            ->with('admin_success', 'Fasilitas '.$facilityName.' berhasil dihapus.');
     }
 
     public function toggleStatus(Request $request, Facility $facility): RedirectResponse
@@ -123,7 +157,7 @@ class FacilityController extends Controller
         $facility->update(['is_active' => ! $facility->is_active]);
 
         return redirect()
-            ->route('admin.facilities.index', $request->only('q', 'status', 'category', 'page'))
+            ->route('admin.facilities.index', $request->only('q', 'status', 'category', 'date', 'page'))
             ->with('admin_success', 'Status fasilitas '.$facility->name.' diperbarui.');
     }
 
