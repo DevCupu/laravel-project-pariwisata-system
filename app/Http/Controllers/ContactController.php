@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\View\View;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Log;
 use App\Mail\ContactFormSubmitted;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\View\View;
 
 class ContactController extends Controller
 {
@@ -28,10 +28,10 @@ class ContactController extends Controller
         // Send email to site admin (from MAIL_FROM_ADDRESS)
         try {
             Mail::to(config('mail.from.address'))
-                ->queue(new ContactFormSubmitted($data));
-        } catch (\Exception $e) {
+                ->send(new ContactFormSubmitted($data));
+        } catch (\Throwable $e) {
             // If mail fails, continue and show friendly message
-            Log::error('Contact form mail failed: ' . $e->getMessage());
+            Log::error('Contact form mail failed: '.$e->getMessage());
         }
 
         return back()->with('success', 'Pesan Anda telah terkirim. Kami akan menghubungi Anda segera.');

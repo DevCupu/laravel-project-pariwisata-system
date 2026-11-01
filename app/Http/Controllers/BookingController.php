@@ -7,20 +7,19 @@ use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\CampingPackage;
 use App\Models\Facility;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\Str;
 use Illuminate\Support\ViewErrorBag;
 use Illuminate\View\View;
-use Illuminate\Database\Eloquent\Model;
 
 class BookingController extends Controller
 {
-
     public function create(Request $request): View
     {
         $facilities = Facility::with('bookable')
@@ -123,8 +122,8 @@ class BookingController extends Controller
         if ($capacity > 0 && ($usedQuota + $requestedGuests) > $capacity) {
             $remaining = max($capacity - $usedQuota, 0);
             $message = $remaining > 0
-                ? 'Kuota untuk ' . $facility->name . ' tersisa ' . $remaining . ' slot pada tanggal tersebut.'
-                : 'Kuota untuk ' . $facility->name . ' pada tanggal tersebut sudah penuh.';
+                ? 'Kuota untuk '.$facility->name.' tersisa '.$remaining.' slot pada tanggal tersebut.'
+                : 'Kuota untuk '.$facility->name.' pada tanggal tersebut sudah penuh.';
 
             return back()
                 ->withErrors(['facility_id' => $message])
@@ -138,7 +137,14 @@ class BookingController extends Controller
         $booking = Booking::create($validated);
         $booking->loadMissing('facility');
 
-        Mail::to($booking->email)->queue(new BookingSubmittedMail($booking));
+        try {
+            Mail::to($booking->email)->send(new BookingSubmittedMail($booking));
+        } catch (\Throwable $exception) {
+            \Illuminate\Support\Facades\Log::error('Gagal mengirim email booking '.$booking->booking_code.': '.$exception->getMessage(), [
+                'booking_id' => $booking->id,
+                'email' => $booking->email,
+            ]);
+        }
 
         return back()
             ->with('booking_success', 'Terima kasih! Permintaan booking Anda telah kami terima dan sedang diproses. Tim kami akan menghubungi melalui WhatsApp atau email dalam 1x24 jam.')
@@ -183,7 +189,7 @@ class BookingController extends Controller
     private function generateBookingCode(): string
     {
         do {
-            $code = 'DPE-' . strtoupper(Str::random(6));
+            $code = 'DPE-'.strtoupper(Str::random(6));
         } while (Booking::where('booking_code', $code)->exists());
 
         return $code;
@@ -199,7 +205,7 @@ class BookingController extends Controller
         ]);
 
         if ($errors) {
-            $errorBag = new ViewErrorBag();
+            $errorBag = new ViewErrorBag;
             $errorBag->put('default', $errors);
             $view->with('errors', $errorBag);
         }
@@ -216,14 +222,14 @@ class BookingController extends Controller
         if ($bookable instanceof CampingPackage && $bookable->price) {
             return [
                 'amount' => $bookable->price,
-                'label' => 'Rp ' . number_format($bookable->price, 0, ',', '.') . ' / paket',
+                'label' => 'Rp '.number_format($bookable->price, 0, ',', '.').' / paket',
             ];
         }
 
         if ($bookable instanceof Activity && $bookable->price_from) {
             return [
                 'amount' => $bookable->price_from,
-                'label' => 'Mulai Rp ' . number_format($bookable->price_from, 0, ',', '.') . ' / orang',
+                'label' => 'Mulai Rp '.number_format($bookable->price_from, 0, ',', '.').' / orang',
             ];
         }
 
