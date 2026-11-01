@@ -1,24 +1,25 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ActivityController;
-use App\Http\Controllers\EventController;
-use App\Http\Controllers\BookingController;
-use App\Http\Controllers\CafeMenuController;
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\AboutSectionController as AdminAboutSectionController;
+use App\Http\Controllers\Admin\ActivityController as AdminActivityController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\BookingController as AdminBookingController;
+use App\Http\Controllers\Admin\CampingPackageController as AdminCampingPackageController;
+use App\Http\Controllers\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Admin\FacilityController as AdminFacilityController;
-use App\Http\Controllers\Admin\ActivityController as AdminActivityController;
+use App\Http\Controllers\Admin\GeneralFacilityInfoController as AdminGeneralFacilityInfoController;
 use App\Http\Controllers\Admin\MenuItemController as AdminMenuItemController;
 use App\Http\Controllers\Admin\PhotoSpotController as AdminPhotoSpotController;
-use App\Http\Controllers\Admin\CampingPackageController as AdminCampingPackageController;
-use App\Http\Controllers\Admin\GeneralFacilityInfoController as AdminGeneralFacilityInfoController;
-use App\Http\Controllers\Admin\EventController as AdminEventController;
+use App\Http\Controllers\Admin\TestimonialController as AdminTestimonialController;
+use App\Http\Controllers\BookingController;
+use App\Http\Controllers\CafeMenuController;
+use App\Http\Controllers\EventController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Middleware\IsAdmin;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 // Public routes
 Route::get('/', [HomeController::class, 'index']);
@@ -79,8 +80,10 @@ Route::middleware(['auth', IsAdmin::class])
         Route::resource('/events', AdminEventController::class)
             ->parameters(['events' => 'event'])
             ->except(['show']);
+        Route::patch('/testimonials/{testimonial}/toggle-status', [AdminTestimonialController::class, 'toggleStatus'])->name('testimonials.toggle-status');
+        Route::patch('/testimonials/{testimonial}/toggle-featured', [AdminTestimonialController::class, 'toggleFeatured'])->name('testimonials.toggle-featured');
+        Route::resource('/testimonials', AdminTestimonialController::class)->except(['show']);
     });
-
 
 // Authenticated user routes
 Route::middleware('auth')->group(function () {
@@ -92,9 +95,10 @@ Route::middleware('auth')->group(function () {
 // Dashboard redirect based on role
 Route::get('/dashboard', function () {
     $user = Auth::user();
+
     return redirect()->route(
         $user->role === 'admin' ? 'admin.dashboard' : 'home'
     );
 })->middleware('auth')->name('dashboard');
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

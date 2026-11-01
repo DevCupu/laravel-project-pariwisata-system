@@ -5,18 +5,18 @@
 @section('page-subtitle', 'Perbarui data event')
 
 @section('content')
-    <div class="space-y-5">
-        @if (session('admin_success'))
-            <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-                {{ session('admin_success') }}
-            </div>
-        @endif
+    <x-ui.card title="Edit Event" subtitle="{{ $event->title }}" :padded="false">
+        @slot('actions')
+            <x-ui.button variant="secondary" :href="route('admin.events.index')">
+                &larr; Kembali
+            </x-ui.button>
+        @endslot
 
-        <div class="rounded-2xl border border-gray-200 bg-white p-6">
-            <h3 class="text-lg font-semibold text-gray-800">Form Event</h3>
-            <p class="text-sm text-gray-500">Perbarui data event atau promo.</p>
-
-            @include('admin.events.partials.form', ['formAction' => route('admin.events.update', $event), 'event' => $event])
+        <div class="p-6">
+            @include('admin.events.partials.form', [
+                'formAction' => route('admin.events.update', $event),
+                'event' => $event,
+            ])
         </div>
-    </div>
+    </x-ui.card>
 @endsection

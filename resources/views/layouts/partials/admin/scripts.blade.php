@@ -3,8 +3,7 @@
         const sidebarToggle = document.getElementById('sidebar-toggle');
         const sidebar = document.getElementById('sidebar');
         const mobileOverlay = document.getElementById('mobile-overlay');
-        const userMenuButton = document.getElementById('user-menu-button');
-        const userMenuDropdown = document.getElementById('user-menu-dropdown');
+        const confirmationModal = document.getElementById('confirmation-modal');
         let isDesktop = window.innerWidth >= 1024;
 
         const showSidebar = () => {
@@ -41,33 +40,101 @@
             }
         });
 
-        if (userMenuButton && userMenuDropdown) {
-            userMenuButton.addEventListener('click', event => {
-                event.stopPropagation();
-                userMenuDropdown.classList.toggle('hidden');
-            });
+        // --- Confirmation modal (daisyUI modal) ---
+        let pendingConfirmForm = null;
 
-            document.addEventListener('click', () => {
-                userMenuDropdown.classList.add('hidden');
-            });
-        }
+        const hideConfirmationModal = () => {
+            confirmationModal?.classList.remove('modal-open');
+            pendingConfirmForm = null;
+        };
+
+        const showConfirmationModal = (message, form) => {
+            if (!confirmationModal) {
+                if (window.confirm(message)) form.submit();
+                return;
+            }
+
+            pendingConfirmForm = form;
+            const messageEl = confirmationModal.querySelector('[data-confirm-message]');
+            if (messageEl) messageEl.textContent = message;
+
+            const confirmBtn = confirmationModal.querySelector('[data-confirm-accept]');
+            if (confirmBtn) confirmBtn.disabled = false;
+
+            confirmationModal.classList.add('modal-open');
+        };
+
+        document.addEventListener('submit', event => {
+            const form = event.target;
+            if (!(form instanceof HTMLFormElement)) return;
+
+            const message = form.getAttribute('data-confirm');
+            if (!message) return;
+
+            event.preventDefault();
+            showConfirmationModal(message, form);
+        });
+
+        confirmationModal?.querySelector('[data-confirm-cancel]')?.addEventListener('click', hideConfirmationModal);
+
+        confirmationModal?.querySelector('.modal-backdrop')?.addEventListener('click', hideConfirmationModal);
+
+        confirmationModal?.querySelector('[data-confirm-accept]')?.addEventListener('click', event => {
+            if (!pendingConfirmForm) return;
+
+            const confirmBtn = event.currentTarget;
+            confirmBtn.disabled = true;
+
+            // Native submit() bypasses the submit event, so the data-confirm
+            // listener above will not re-trigger this modal.
+            pendingConfirmForm.submit();
+        });
 
         document.addEventListener('keydown', event => {
-            if (event.key === 'Escape' && !isDesktop) {
-                hideSidebar();
+            if (event.key !== 'Escape') return;
+
+            if (confirmationModal?.classList.contains('modal-open')) {
+                hideConfirmationModal();
+                return;
             }
+
+            if (!isDesktop) hideSidebar();
         });
     });
 
     function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const icons = {
+            success: 'fa-circle-check text-success',
+            error: 'fa-circle-xmark text-error',
+            info: 'fa-circle-info text-info',
+        };
+        const alerts = {
+            success: 'alert-success',
+            error: 'alert-error',
+            info: 'alert-info',
+        };
+
         const toast = document.createElement('div');
-        const bgColor = type === 'success' ? 'bg-emerald-500' : type === 'error' ? 'bg-rose-500' : 'bg-slate-600';
-        toast.className = `${bgColor} text-white px-4 py-2 rounded-lg shadow flex items-center space-x-3 text-sm`;
+        toast.className = `admin-animate-toast alert ${alerts[type] ?? alerts.info} shadow-lg text-sm`;
         toast.innerHTML = `
+            <i class="fas ${icons[type] ?? icons.info}"></i>
             <span class="flex-1">${message}</span>
-            <button type="button" aria-label="Close toast" class="text-white/80" onclick="this.parentElement.remove()">×</button>
+            <button type="button" aria-label="Tutup notifikasi" class="btn btn-ghost btn-xs btn-circle">
+                <i class="fas fa-xmark"></i>
+            </button>
         `;
-        document.getElementById('toast-container')?.appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
+
+        const dismiss = () => {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        };
+
+        toast.querySelector('button')?.addEventListener('click', dismiss);
+        container.appendChild(toast);
+        setTimeout(dismiss, 4000);
     }
 </script>

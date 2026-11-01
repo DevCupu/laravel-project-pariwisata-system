@@ -1,5 +1,7 @@
 import defaultTheme from "tailwindcss/defaultTheme";
 import forms from "@tailwindcss/forms";
+import daisyui from "daisyui";
+import flowbite from "flowbite/plugin";
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -18,5 +20,10 @@ export default {
         },
     },
 
-    plugins: [[require("daisyui")], require("flowbite/plugin"), forms],
+    plugins: [daisyui, flowbite, forms],
+
+    daisyui: {
+        themes: ["light --default"],
+        logs: false,
+    },
 };

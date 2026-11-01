@@ -5,17 +5,19 @@
 @section('page-subtitle', 'Perbarui detail aktivitas')
 
 @section('content')
-    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-        <div class="mb-6 flex items-center justify-between">
-            <div>
-                <h2 class="text-xl font-semibold text-gray-800">{{ $activity->title }}</h2>
-                <p class="text-sm text-gray-500">Terakhir diperbarui {{ $activity->updated_at?->diffForHumans() }}</p>
-            </div>
-            <a href="{{ route('admin.activities.index') }}" class="text-sm font-semibold text-gray-500 hover:text-gray-700">Kembali</a>
-        </div>
+    <x-ui.card :title="$activity->title"
+        :subtitle="'Terakhir diperbarui ' . ($activity->updated_at?->diffForHumans() ?? '')"
+        :padded="false">
+        @slot('actions')
+            <x-ui.button variant="secondary" :href="route('admin.activities.index')">
+                &larr; Kembali
+            </x-ui.button>
+        @endslot
 
-        @include('admin.activities.partials.form', [
-            'formAction' => route('admin.activities.update', $activity),
-        ])
-    </div>
+        <div class="p-6">
+            @include('admin.activities.partials.form', [
+                'formAction' => route('admin.activities.update', $activity),
+            ])
+        </div>
+    </x-ui.card>
 @endsection

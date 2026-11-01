@@ -22,7 +22,7 @@ class AboutSectionController extends Controller
     public function create(): View
     {
         return view('admin.about-sections.create', [
-            'section' => new AboutSection(),
+            'section' => new AboutSection,
         ]);
     }
 

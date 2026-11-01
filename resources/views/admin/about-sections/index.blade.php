@@ -6,77 +6,67 @@
 @section('page-subtitle', 'Atur informasi Sejarah dan Lokasi yang muncul di halaman publik')
 
 @section('content')
-    <div class="space-y-6">
-        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <p class="text-sm text-gray-500">Gunakan urutan tampil untuk mengatur posisi dropdown.</p>
-            <a href="{{ route('admin.about-sections.create') }}"
-                class="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-gray-800">
-                <i class="fas fa-plus text-xs"></i>
-                Tambah Konten
-            </a>
-        </div>
+    <div class="space-y-5">
+        <x-ui.card title="Daftar Konten" subtitle="Gunakan urutan tampil untuk mengatur posisi dropdown.">
+            @slot('actions')
+                <x-ui.button :href="route('admin.about-sections.create')">
+                    <i class="fas fa-plus text-xs"></i>
+                    Tambah Konten
+                </x-ui.button>
+            @endslot
 
-        @if (session('status'))
-            <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                {{ session('status') }}
-            </div>
-        @endif
-
-        <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-100 text-sm">
-                    <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                <table class="table table-zebra w-full text-sm">
+                    <thead class="text-xs font-semibold uppercase tracking-wide text-base-content/50">
                         <tr>
-                            <th class="px-6 py-3">Judul</th>
-                            <th class="px-6 py-3">Slug</th>
-                            <th class="px-6 py-3">Status</th>
-                            <th class="px-6 py-3">Urutan</th>
-                            <th class="px-6 py-3 text-right">Aksi</th>
+                            <th class="text-left">Judul</th>
+                            <th class="text-left">Slug</th>
+                            <th class="text-left">Status</th>
+                            <th class="text-left">Urutan</th>
+                            <th class="border-b border-slate-200 px-5 py-3 text-right">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100 text-gray-700">
+                    <tbody>
                         @forelse ($sections as $section)
                             <tr>
-                                <td class="px-6 py-4">
-                                    <p class="font-semibold text-gray-900">{{ $section->title }}</p>
-                                    <p class="text-xs text-gray-500 line-clamp-1">{{ Str::limit($section->content, 80) }}</p>
+                                <td class="px-5 py-3.5">
+                                    <p class="font-semibold text-slate-900">{{ $section->title }}</p>
+                                    <p class="mt-0.5 text-xs text-slate-500">{{ Str::limit($section->content, 80) }}</p>
                                 </td>
-                                <td class="px-6 py-4">
-                                    <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
+                                <td class="px-5 py-3.5">
+                                    <span class="rounded-full bg-slate-100 px-2.5 py-1 font-mono text-xs font-semibold text-slate-700">
                                         #{{ $section->slug }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4">
-                                    <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold {{ $section->is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600' }}">
-                                        <span class="h-2 w-2 rounded-full {{ $section->is_active ? 'bg-emerald-500' : 'bg-gray-400' }}"></span>
+                                <td class="px-5 py-3.5">
+                                    <x-ui.badge :tone="$section->is_active ? 'success' : 'neutral'" dot>
                                         {{ $section->is_active ? 'Aktif' : 'Disembunyikan' }}
-                                    </span>
+                                    </x-ui.badge>
                                 </td>
-                                <td class="px-6 py-4 font-semibold">{{ $section->display_order }}</td>
-                                <td class="px-6 py-4 text-right">
-                                    <div class="flex justify-end gap-2">
-                                        <a href="{{ route('admin.about-sections.edit', $section) }}"
-                                            class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">
-                                            <i class="fas fa-pen"></i>
+                                <td class="px-5 py-3.5 font-semibold">{{ $section->display_order }}</td>
+                                <td class="px-5 py-3.5 text-right">
+                                    <div class="flex flex-wrap items-center justify-end gap-2 text-xs">
+                                        <x-ui.button size="sm" variant="soft-blue" :href="route('admin.about-sections.edit', $section)">
+                                            <i class="fas fa-pen text-[10px]"></i>
                                             Edit
-                                        </a>
-                                        <form action="{{ route('admin.about-sections.destroy', $section) }}" method="POST"
-                                            onsubmit="return confirm('Hapus konten ini?');">
+                                        </x-ui.button>
+                                        <form method="POST" action="{{ route('admin.about-sections.destroy', $section) }}"
+                                            data-confirm="Hapus konten &quot;{{ $section->title }}&quot;?">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit"
-                                                class="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50">
-                                                <i class="fas fa-trash"></i>
+                                            <x-ui.button size="sm" variant="danger" type="submit">
+                                                <i class="fas fa-trash text-[10px]"></i>
                                                 Hapus
-                                            </button>
+                                            </x-ui.button>
                                         </form>
                                     </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-6 text-center text-sm text-gray-500">
-                                    Belum ada konten Tentang Kami.
+                                <td colspan="5">
+                                    <x-ui.empty-state icon="fa-book-open" title="Belum ada konten Tentang Kami"
+                                        text="Tambahkan blok konten sejarah atau lokasi." class="py-8" />
                                 </td>
                             </tr>
                         @endforelse
@@ -84,9 +74,9 @@
                 </table>
             </div>
 
-            <div class="px-6 py-4">
-                 {{ $sections->links('vendor.pagination.admin') }}
+            <div class="border-t border-base-300/60 px-6 py-4">
+                {{ $sections->links('vendor.pagination.admin') }}
             </div>
-        </div>
+        </x-ui.card>
     </div>
 @endsection

@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\Facility;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -16,17 +17,19 @@ use Illuminate\View\View;
 class BookingController extends Controller
 {
     private const STATUS_OPTIONS = [
-        'pending' => 'Pending',
-        'confirmed' => 'Confirmed',
-        'cancelled' => 'Cancelled',
+        'pending' => 'Menunggu',
+        'confirmed' => 'Dikonfirmasi',
+        'cancelled' => 'Dibatalkan',
         'completed' => 'Selesai',
     ];
+
+    private const SORT_OPTIONS = ['latest', 'oldest', 'visit_asc', 'visit_desc'];
 
     public function index(Request $request): View
     {
         $statusOptions = $this->statusOptions();
 
-        $query = Booking::query();
+        $query = Booking::query()->with('facility');
 
         $statusFilter = $request->input('status');
         if ($statusFilter && ! array_key_exists($statusFilter, $statusOptions)) {
@@ -37,17 +40,41 @@ class BookingController extends Controller
             $query->where('status', $statusFilter);
         }
 
-        if ($search = $request->input('q')) {
+        $search = trim((string) $request->input('q'));
+
+        if ($search !== '') {
             $query->where(function ($builder) use ($search) {
                 $builder->where('booking_code', 'like', "%{$search}%")
                     ->orWhere('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
+        $from = $this->normalizeDate($request->input('from'));
+        $to = $this->normalizeDate($request->input('to'));
+
+        if ($from) {
+            $query->whereDate('visit_date', '>=', $from);
+        }
+
+        if ($to) {
+            $query->whereDate('visit_date', '<=', $to);
+        }
+
+        $sort = $request->input('sort', 'latest');
+        if (! in_array($sort, self::SORT_OPTIONS, true)) {
+            $sort = 'latest';
+        }
+
+        match ($sort) {
+            'oldest' => $query->oldest(),
+            'visit_asc' => $query->orderBy('visit_date')->orderBy('id'),
+            'visit_desc' => $query->orderByDesc('visit_date')->orderByDesc('id'),
+            default => $query->latest(),
+        };
+
         $bookings = $query
-            ->with('facility')
-            ->latest()
             ->paginate($this->adminPerPage())
             ->withQueryString();
 
@@ -64,6 +91,13 @@ class BookingController extends Controller
             'stats' => $stats,
             'statusFilter' => $statusFilter,
             'statusOptions' => $statusOptions,
+            'filters' => [
+                'q' => $search,
+                'status' => $statusFilter,
+                'from' => $from,
+                'to' => $to,
+                'sort' => $sort,
+            ],
         ]);
     }
 
@@ -168,13 +202,21 @@ class BookingController extends Controller
         $booking->update($validated);
         $booking->loadMissing('facility');
 
+        $emailFailed = false;
+
         if ($originalStatus !== 'confirmed' && $booking->status === 'confirmed') {
-            $this->sendConfirmationEmail($booking);
+            $emailFailed = ! $this->sendConfirmationEmail($booking);
         }
 
-        return redirect()
+        $redirect = redirect()
             ->route('admin.bookings.edit', $booking)
             ->with('admin_success', 'Data booking berhasil diperbarui.');
+
+        if ($emailFailed) {
+            $redirect->with('admin_error', $this->emailFailureMessage($booking));
+        }
+
+        return $redirect;
     }
 
     public function updateStatus(Request $request, Booking $booking): RedirectResponse
@@ -187,24 +229,50 @@ class BookingController extends Controller
         $booking->update($validated);
         $booking->loadMissing('facility');
 
+        $emailFailed = false;
+
         if ($previousStatus !== 'confirmed' && $booking->status === 'confirmed') {
-            $this->sendConfirmationEmail($booking);
+            $emailFailed = ! $this->sendConfirmationEmail($booking);
         }
 
         $redirectQuery = array_filter([
             'q' => $request->input('q'),
             'status' => $request->input('status_filter'),
+            'from' => $request->input('from'),
+            'to' => $request->input('to'),
+            'sort' => $request->input('sort'),
             'page' => $request->input('page'),
         ], fn ($value) => filled($value));
 
-        return redirect()
+        $statusLabel = $this->statusOptions()[$validated['status']] ?? ucfirst($validated['status']);
+
+        $redirect = redirect()
             ->route('admin.bookings.index', $redirectQuery)
-            ->with('admin_success', 'Status booking ' . $booking->booking_code . ' diperbarui menjadi ' . ucfirst($validated['status']) . '.');
+            ->with('admin_success', 'Status booking '.$booking->booking_code.' diperbarui menjadi '.$statusLabel.'.');
+
+        if ($emailFailed) {
+            $redirect->with('admin_error', $this->emailFailureMessage($booking));
+        }
+
+        return $redirect;
     }
 
     private function statusOptions(): array
     {
         return self::STATUS_OPTIONS;
+    }
+
+    private function normalizeDate(?string $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        try {
+            return \Illuminate\Support\Carbon::parse($value)->format('Y-m-d');
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function facilityGroups(?int $includeFacilityId = null)
@@ -224,7 +292,7 @@ class BookingController extends Controller
                 $facilities = $facilities->sortBy(function (Facility $facility) {
                     $sortOrder = str_pad((string) ($facility->sort_order ?? 0), 5, '0', STR_PAD_LEFT);
 
-                    return $facility->category . '|' . $sortOrder . '|' . $facility->name;
+                    return $facility->category.'|'.$sortOrder.'|'.$facility->name;
                 })->values();
             }
         }
@@ -253,21 +321,38 @@ class BookingController extends Controller
         $remaining = max($capacity - $usedQuota, 0);
 
         return $remaining > 0
-            ? 'Kuota tersisa ' . $remaining . ' slot pada tanggal tersebut. Kurangi jumlah tamu atau pilih tanggal lain.'
+            ? 'Kuota tersisa '.$remaining.' slot pada tanggal tersebut. Kurangi jumlah tamu atau pilih tanggal lain.'
             : 'Kuota pada tanggal tersebut sudah penuh untuk fasilitas ini.';
     }
 
     private function generateBookingCode(): string
     {
         do {
-            $code = 'ADM-' . Str::upper(Str::random(6));
+            $code = 'ADM-'.Str::upper(Str::random(6));
         } while (Booking::where('booking_code', $code)->exists());
 
         return $code;
     }
 
-    private function sendConfirmationEmail(Booking $booking): void
+    private function sendConfirmationEmail(Booking $booking): bool
     {
-        Mail::to($booking->email)->send(new BookingConfirmedMail($booking));
+        try {
+            Mail::to($booking->email)->send(new BookingConfirmedMail($booking));
+
+            return true;
+        } catch (\Throwable $exception) {
+            Log::error('Gagal mengirim email konfirmasi booking '.$booking->booking_code.': '.$exception->getMessage(), [
+                'booking_id' => $booking->id,
+                'email' => $booking->email,
+            ]);
+
+            return false;
+        }
+    }
+
+    private function emailFailureMessage(Booking $booking): string
+    {
+        return 'Status booking '.$booking->booking_code.' tersimpan, tetapi email konfirmasi ke '
+            .$booking->email.' gagal dikirim. Periksa konfigurasi email di menu pengaturan server.';
     }
 }

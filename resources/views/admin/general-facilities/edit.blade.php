@@ -5,11 +5,19 @@
 @section('page-subtitle', 'Perbarui deskripsi atau status penayangan')
 
 @section('content')
-    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-        @include('admin.general-facilities.partials.form', [
-            'facility' => $facility,
-            'formAction' => route('admin.general-facilities.update', $facility),
-            'formMethod' => 'PUT',
-        ])
-    </div>
+    <x-ui.card title="Edit Fasilitas Umum" subtitle="{{ $facility->name }}" :padded="false">
+        @slot('actions')
+            <x-ui.button variant="secondary" :href="route('admin.general-facilities.index')">
+                &larr; Kembali
+            </x-ui.button>
+        @endslot
+
+        <div class="p-6">
+            @include('admin.general-facilities.partials.form', [
+                'facility' => $facility,
+                'formAction' => route('admin.general-facilities.update', $facility),
+                'formMethod' => 'PUT',
+            ])
+        </div>
+    </x-ui.card>
 @endsection

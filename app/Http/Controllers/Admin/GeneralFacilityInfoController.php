@@ -47,7 +47,7 @@ class GeneralFacilityInfoController extends Controller
     public function create(): View
     {
         return view('admin.general-facilities.create', [
-            'facility' => new GeneralFacilityInfo(),
+            'facility' => new GeneralFacilityInfo,
         ]);
     }
 
@@ -105,7 +105,7 @@ class GeneralFacilityInfoController extends Controller
     {
         $uniqueSlugRule = 'unique:general_facilities_info,slug';
         if ($ignoreId) {
-            $uniqueSlugRule .= ',' . $ignoreId;
+            $uniqueSlugRule .= ','.$ignoreId;
         }
 
         return $request->validate([
@@ -130,7 +130,7 @@ class GeneralFacilityInfoController extends Controller
 
     private function generateSlug(array $payload, ?int $ignoreId = null): string
     {
-        $base = Str::slug($payload['slug'] ?: $payload['name']) ?: 'facility';
+        $base = Str::slug(($payload['slug'] ?? null) ?: $payload['name']) ?: 'facility';
         $slug = $base;
         $counter = 1;
 
@@ -139,7 +139,7 @@ class GeneralFacilityInfoController extends Controller
                 ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
                 ->exists()
         ) {
-            $slug = $base . '-' . $counter;
+            $slug = $base.'-'.$counter;
             $counter++;
         }
 

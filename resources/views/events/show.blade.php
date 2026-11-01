@@ -1,29 +1,35 @@
 @extends('layouts.public')
 
 @section('title', $event->title)
+@section('meta_description', Str::limit(strip_tags($event->excerpt ?? $event->content), 150))
+@if ($event->image_url)
+    @section('og_image', $event->image_url)
+@endif
 
 @section('content')
-    <div class="max-w-4xl mx-auto px-4 py-12">
-        <article class="rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-sm">
-            @if($event->image_url)
-                <div class="h-72 bg-gray-100">
-                    <img src="{{ $event->image_url }}" alt="{{ $event->title }}" class="w-full h-full object-cover">
-                </div>
-            @endif
+    @include('partials.public.page-hero', [
+        'title' => $event->title,
+        'subtitle' => $event->start_date ? ($event->start_date->format('d M Y') . ($event->end_date ? ' - ' . $event->end_date->format('d M Y') : '')) : null,
+        'eyebrow' => $event->type === 'promo' ? 'Promo' : 'Event',
+        'image' => $event->image_url,
+        'breadcrumb' => [
+            ['label' => 'Promo & Event', 'url' => route('events.index')],
+            ['label' => $event->title],
+        ],
+    ])
 
-            <div class="p-6">
-                <h1 class="text-2xl font-bold">{{ $event->title }}</h1>
-                <p class="text-sm text-gray-500 mt-2">{{ $event->start_date ? $event->start_date->format('d M Y') : '' }}@if($event->end_date) - {{ $event->end_date->format('d M Y') }}@endif</p>
+    <section class="pn-section pn-section--tint">
+        <div class="pn-container">
+            <article class="pn-card mx-auto max-w-3xl p-6 sm:p-10">
+                <div class="prose max-w-none text-slate-700">{!! $event->content !!}</div>
 
-                <div class="prose mt-6 text-gray-700">{!! $event->content !!}</div>
-
-                <div class="mt-6">
-                    <a href="{{ route('events.index') }}" class="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                        <i class="fas fa-arrow-left"></i>
+                <div class="mt-10 border-t border-slate-100 pt-6">
+                    <a href="{{ route('events.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 transition hover:text-emerald-800">
+                        <i class="fas fa-arrow-left" aria-hidden="true"></i>
                         Kembali ke daftar
                     </a>
                 </div>
-            </div>
-        </article>
-    </div>
+            </article>
+        </div>
+    </section>
 @endsection

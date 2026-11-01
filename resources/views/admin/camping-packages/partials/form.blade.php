@@ -6,119 +6,72 @@
     }
 @endphp
 
-<form method="POST" action="{{ $formAction }}" class="space-y-6" enctype="multipart/form-data">
+<form method="POST" action="{{ $formAction }}" enctype="multipart/form-data">
     @csrf
     @if ($formMethod === 'PUT')
         @method('PUT')
     @endif
 
-    <div class="grid gap-6 lg:grid-cols-2">
-        <div class="space-y-4">
-            <div>
-                <label class="mb-1 block text-sm font-semibold text-gray-700">Nama Paket</label>
-                <input type="text" name="name" value="{{ old('name', $package->name) }}"
-                    class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500"
-                    required>
-                @error('name')
-                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                @enderror
+    <div class="lg:grid lg:grid-cols-3 lg:gap-5">
+        <div class="lg:col-span-2">
+            <div class="space-y-5">
+                <x-ui.section title="Detail Paket">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <x-ui.input label="Nama Paket" name="name" :value="$package->name" required />
+                        <x-ui.input label="Slug (opsional)" name="slug" :value="$package->slug"
+                            hint="Kosongkan untuk generate otomatis dari nama" />
+                    </div>
+                    <x-ui.input label="Tagline" name="tagline" :value="$package->tagline" class="mt-4"
+                        hint="Kalimat singkat yang menarik perhatian" />
+                    <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                        <x-ui.input label="Harga (Rp)" name="price" type="number" :value="$package->price" min="0" required />
+                        <div class="grid grid-cols-3 gap-3">
+                            <x-ui.input label="Malam" name="nights" type="number" :value="$package->nights" min="1" max="30" />
+                            <x-ui.input label="Kapasitas" name="capacity" type="number" :value="$package->capacity" min="1" max="500" />
+                            <x-ui.input label="Urutan" name="sort_order" type="number" :value="$package->sort_order ?? 0" min="0" max="1000" />
+                        </div>
+                    </div>
+                    <x-ui.textarea label="Deskripsi" name="description" :value="$package->description" rows="6" class="mt-4" />
+                    <x-ui.textarea label="Fasilitas Termasuk" name="includes" :value="$includesText" rows="5" class="mt-4"
+                        hint="1 baris = 1 item" />
+                </x-ui.section>
             </div>
-            <div>
-                <label class="mb-1 block text-sm font-semibold text-gray-700">Slug (opsional)</label>
-                <input type="text" name="slug" value="{{ old('slug', $package->slug) }}"
-                    class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500">
-                @error('slug')
-                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                @enderror
-            </div>
-            <div>
-                <label class="mb-1 block text-sm font-semibold text-gray-700">Tagline</label>
-                <input type="text" name="tagline" value="{{ old('tagline', $package->tagline) }}"
-                    class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500">
-            </div>
-            <div>
-                <label class="mb-1 block text-sm font-semibold text-gray-700">Harga (Rp)</label>
-                <input type="number" name="price" value="{{ old('price', $package->price) }}" min="0"
-                    class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500" required>
-                @error('price')
-                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                @enderror
-            </div>
-            <div class="grid gap-4 sm:grid-cols-3">
-                <div>
-                    <label class="mb-1 block text-sm font-semibold text-gray-700">Malam</label>
-                    <input type="number" name="nights" value="{{ old('nights', $package->nights) }}" min="1" max="30"
-                        class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500">
+        </div>
+
+        <div class="mt-5 space-y-5 lg:col-span-1 lg:mt-0">
+            <x-ui.section title="Publikasi">
+                <div class="space-y-4">
+                    <x-ui.toggle name="is_active" label="Tampilkan paket"
+                        helper="Menyembunyikan paket juga menonaktifkan slot booking."
+                        :checked="old('is_active', $package->is_active ?? true)" />
+                    <x-ui.toggle name="is_featured" label="Tandai highlight"
+                        helper="Highlight akan tampil di bagian hero destinasi."
+                        :checked="old('is_featured', $package->is_featured)" />
                 </div>
-                <div>
-                    <label class="mb-1 block text-sm font-semibold text-gray-700">Kapasitas</label>
-                    <input type="number" name="capacity" value="{{ old('capacity', $package->capacity) }}" min="1" max="500"
-                        class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500">
-                </div>
-                <div>
-                    <label class="mb-1 block text-sm font-semibold text-gray-700">Urutan</label>
-                    <input type="number" name="sort_order" value="{{ old('sort_order', $package->sort_order ?? 0) }}" min="0" max="1000"
-                        class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500">
-                </div>
-            </div>
-            <div>
-                <label class="mb-1 block text-sm font-semibold text-gray-700">Gambar Paket (upload)</label>
-                @if($package->image_path)
-                    <div class="mb-2">
-                        <img src="{{ Storage::url($package->image_path) }}" alt="preview" class="h-28 w-auto rounded-md object-cover border">
+            </x-ui.section>
+
+            <x-ui.section title="Media">
+                @if ($package->image_path)
+                    <div class="mb-3 overflow-hidden rounded-xl ring-1 ring-slate-200">
+                        <img src="{{ Storage::url($package->image_path) }}" alt="preview" class="h-28 w-full object-cover">
                     </div>
                 @endif
-                <input type="file" name="image" accept="image/*"
-                    class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500">
-                <p class="mt-1 text-xs text-gray-500">Biarkan kosong untuk mempertahankan gambar lama. Maks 5MB. Format: jpg, png, webp.</p>
+                <x-ui.file label="Gambar Paket" name="image" accept="image/*"
+                    hint="Biarkan kosong untuk mempertahankan gambar lama. Maks 5MB." />
                 <input type="hidden" name="image_path" value="{{ old('image_path', $package->image_path) }}">
-                @error('image')
-                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                @enderror
-            </div>
-        </div>
-        <div class="space-y-4">
-            <div>
-                <label class="mb-1 block text-sm font-semibold text-gray-700">Deskripsi</label>
-                <textarea name="description" rows="8"
-                    class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500">{{ old('description', $package->description) }}</textarea>
-            </div>
-            <div>
-                <label class="mb-1 block text-sm font-semibold text-gray-700">Fasilitas Termasuk (1 baris = 1 item)</label>
-                <textarea name="includes" rows="6"
-                    class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500">{{ $includesText }}</textarea>
-            </div>
-        </div>
-    </div>
+            </x-ui.section>
 
-    <div class="flex flex-col gap-4 rounded-2xl border border-gray-100 bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex items-center gap-3">
-            <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $package->is_active ?? true))
-                class="h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500">
-            <div>
-                <p class="text-sm font-semibold text-gray-800">Tampilkan paket</p>
-                <p class="text-xs text-gray-500">Menyembunyikan paket juga menonaktifkan slot booking.</p>
-            </div>
+            <x-ui.section class="sticky bottom-0">
+                <div class="flex flex-col gap-3 sm:flex-row">
+                    <x-ui.button type="submit" class="flex-1">
+                        <i class="fas fa-save text-xs"></i>
+                        {{ $isEdit ? 'Simpan Perubahan' : 'Simpan Paket' }}
+                    </x-ui.button>
+                    <x-ui.button variant="secondary" :href="route('admin.camping-packages.index')" class="flex-1">
+                        Batal
+                    </x-ui.button>
+                </div>
+            </x-ui.section>
         </div>
-        <div class="flex items-center gap-3">
-            <input type="checkbox" name="is_featured" value="1" @checked(old('is_featured', $package->is_featured))
-                class="h-5 w-5 rounded border-gray-300 text-amber-500 focus:ring-amber-500">
-            <div>
-                <p class="text-sm font-semibold text-gray-800">Tandai highlight</p>
-                <p class="text-xs text-gray-500">Highlight akan tampil di bagian hero destinasi.</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="flex flex-wrap gap-3">
-        <button type="submit"
-            class="inline-flex items-center gap-2 rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-green-700">
-            <i class="fas fa-save text-xs"></i>
-            {{ $isEdit ? 'Simpan Perubahan' : 'Simpan Paket' }}
-        </button>
-        <a href="{{ route('admin.camping-packages.index') }}"
-            class="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
-            Batal
-        </a>
     </div>
 </form>

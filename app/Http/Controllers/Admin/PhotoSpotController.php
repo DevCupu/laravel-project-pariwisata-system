@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\PhotoSpot;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class PhotoSpotController extends Controller
@@ -52,7 +52,7 @@ class PhotoSpotController extends Controller
     public function create(): View
     {
         return view('admin.photo-spots.create', [
-            'spot' => new PhotoSpot(),
+            'spot' => new PhotoSpot,
         ]);
     }
 
@@ -148,7 +148,7 @@ class PhotoSpotController extends Controller
     {
         $uniqueSlugRule = 'unique:photo_spots,slug';
         if ($ignoreId) {
-            $uniqueSlugRule .= ',' . $ignoreId;
+            $uniqueSlugRule .= ','.$ignoreId;
         }
 
         return $request->validate([
@@ -168,7 +168,7 @@ class PhotoSpotController extends Controller
 
     private function ensureSlug(array $payload, ?int $ignoreId = null): array
     {
-        $base = Str::slug($payload['slug'] ?: $payload['title']) ?: 'photo-spot';
+        $base = Str::slug(($payload['slug'] ?? null) ?: $payload['title']) ?: 'photo-spot';
         $slug = $base;
         $counter = 1;
 
@@ -177,7 +177,7 @@ class PhotoSpotController extends Controller
                 ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
                 ->exists()
         ) {
-            $slug = $base . '-' . $counter;
+            $slug = $base.'-'.$counter;
             $counter++;
         }
 

@@ -65,7 +65,7 @@ class FacilityController extends Controller
     public function create(): View
     {
         return view('admin.facilities.create', [
-            'facility' => new Facility(),
+            'facility' => new Facility,
             'categoryOptions' => $this->categoryOptions(),
         ]);
     }
@@ -124,7 +124,7 @@ class FacilityController extends Controller
 
         return redirect()
             ->route('admin.facilities.index', $request->only('q', 'status', 'category', 'page'))
-            ->with('admin_success', 'Status fasilitas ' . $facility->name . ' diperbarui.');
+            ->with('admin_success', 'Status fasilitas '.$facility->name.' diperbarui.');
     }
 
     private function validateFacility(Request $request, ?int $facilityId = null): array
@@ -162,7 +162,7 @@ class FacilityController extends Controller
                 ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
                 ->exists()
         ) {
-            $slug = $base . '-' . $counter;
+            $slug = $base.'-'.$counter;
             $counter++;
         }
 

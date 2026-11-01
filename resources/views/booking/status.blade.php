@@ -1,18 +1,18 @@
 @extends('layouts.public')
 
 @section('title', 'Cek Status Booking')
+@section('meta_description', 'Pantau status permintaan booking Anda di Dante Pine Enrekang menggunakan kode booking, tanpa perlu masuk akun.')
 
 @section('content')
-    <section class="pt-36 pb-16 bg-gray-50">
-        <div class="max-w-5xl mx-auto px-4 space-y-10">
-            <div class="text-center space-y-4">
-                <p class="text-xs font-semibold tracking-[0.35em] text-gray-500 uppercase">Panel Pemantauan</p>
-                <h1 class="text-4xl md:text-5xl font-semibold text-gray-900">Status Reservasi Dante Pine </h1>
-                <p class="text-base text-gray-600 max-w-3xl mx-auto">Masukkan kode booking yang tercantum pada bukti
-                    permintaan untuk melihat progres penanganan terbaru. Panel ini dapat digunakan kapan pun tanpa perlu
-                    masuk ke akun.</p>
-            </div>
+    @include('partials.public.page-hero', [
+        'title' => 'Status Reservasi Dante Pine',
+        'subtitle' => 'Masukkan kode booking yang tercantum pada bukti permintaan untuk melihat progres penanganan terbaru. Panel ini dapat digunakan kapan pun tanpa perlu masuk ke akun.',
+        'eyebrow' => 'Panel Pemantauan',
+        'breadcrumb' => [['label' => 'Cek Status Booking']],
+    ])
 
+    <section class="pn-section pn-section--tint">
+        <div class="pn-container space-y-10">
             @if ($errors->any())
                 <div class="rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 px-5 py-4 shadow-sm">
                     <p class="font-semibold mb-2">Periksa kembali data yang diisi:</p>

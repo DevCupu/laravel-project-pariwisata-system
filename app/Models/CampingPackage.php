@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class CampingPackage extends Model
 {
@@ -35,6 +35,10 @@ class CampingPackage extends Model
         'includes' => 'array',
         'is_featured' => 'boolean',
         'is_active' => 'boolean',
+    ];
+
+    protected $attributes = [
+        'is_active' => true,
     ];
 
     public function scopeActive(Builder $query): Builder
@@ -95,7 +99,7 @@ class CampingPackage extends Model
     {
         $data = [
             'name' => $this->name,
-            'slug' => 'camp-' . $this->slug,
+            'slug' => 'camp-'.$this->slug,
             'category' => 'camping',
             'description' => $this->description,
             'capacity_per_day' => $this->capacity ?? 0,

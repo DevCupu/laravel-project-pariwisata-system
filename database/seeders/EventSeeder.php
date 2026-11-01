@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Event;
-use Illuminate\Support\Str;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class EventSeeder extends Seeder
 {
@@ -48,7 +48,7 @@ class EventSeeder extends Seeder
         ];
 
         foreach ($samples as $s) {
-            $slug = Str::slug($s['title']) . '-' . Str::random(6);
+            $slug = Str::slug($s['title']).'-'.Str::random(6);
             Event::create(array_merge($s, ['slug' => $slug]));
         }
     }

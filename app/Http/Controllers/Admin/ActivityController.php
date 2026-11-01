@@ -60,7 +60,7 @@ class ActivityController extends Controller
     public function create(): View
     {
         return view('admin.activities.create', [
-            'activity' => new Activity(),
+            'activity' => new Activity,
             'categoryOptions' => $this->categoryOptions(),
         ]);
     }
@@ -124,7 +124,7 @@ class ActivityController extends Controller
     {
         $uniqueSlugRule = 'unique:activities,slug';
         if ($ignoreId) {
-            $uniqueSlugRule .= ',' . $ignoreId;
+            $uniqueSlugRule .= ','.$ignoreId;
         }
 
         return $request->validate([
@@ -155,7 +155,8 @@ class ActivityController extends Controller
 
     private function ensureSlug(array $payload, ?int $ignoreId = null): array
     {
-        $base = Str::slug($payload['slug'] ?: $payload['title']) ?: 'activity';
+        $slugInput = $payload['slug'] ?? null;
+        $base = Str::slug($slugInput ?: $payload['title']) ?: 'activity';
         $slug = $base;
         $counter = 1;
 
@@ -164,7 +165,7 @@ class ActivityController extends Controller
                 ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
                 ->exists()
         ) {
-            $slug = $base . '-' . $counter;
+            $slug = $base.'-'.$counter;
             $counter++;
         }
 

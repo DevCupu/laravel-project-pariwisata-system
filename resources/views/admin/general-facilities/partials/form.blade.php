@@ -2,75 +2,53 @@
     $isEdit = $facility->exists;
 @endphp
 
-<form method="POST" action="{{ $formAction }}" class="space-y-6">
+<form method="POST" action="{{ $formAction }}">
     @csrf
     @if ($formMethod === 'PUT')
         @method('PUT')
     @endif
 
-    <div class="grid gap-6 lg:grid-cols-2">
-        <div class="space-y-4">
-            <div>
-                <label class="mb-1 block text-sm font-semibold text-gray-700">Nama Fasilitas</label>
-                <input type="text" name="name" value="{{ old('name', $facility->name) }}" required
-                    class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500">
-                @error('name')
-                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                @enderror
-            </div>
-            <div>
-                <label class="mb-1 block text-sm font-semibold text-gray-700">Slug (opsional)</label>
-                <input type="text" name="slug" value="{{ old('slug', $facility->slug) }}"
-                    class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500">
-                @error('slug')
-                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                @enderror
-            </div>
-            <div>
-                <label class="mb-1 block text-sm font-semibold text-gray-700">Ikon Font Awesome</label>
-                <input type="text" name="icon" value="{{ old('icon', $facility->icon) }}"
-                    class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500"
-                    placeholder="contoh: fa-solid fa-restroom">
+    <div class="lg:grid lg:grid-cols-3 lg:gap-5">
+        <div class="lg:col-span-2">
+            <div class="space-y-5">
+                <x-ui.section title="Detail Fasilitas">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <x-ui.input label="Nama Fasilitas" name="name" :value="$facility->name" required />
+                        <x-ui.input label="Slug (opsional)" name="slug" :value="$facility->slug"
+                            hint="Kosongkan untuk generate otomatis dari nama" />
+                    </div>
+                    <x-ui.input label="Ikon Font Awesome" name="icon" :value="$facility->icon"
+                        class="mt-4" placeholder="contoh: fa-solid fa-restroom"
+                        hint="Gunakan class ikon Font Awesome" />
+                    <x-ui.textarea label="Deskripsi" name="description" :value="$facility->description" rows="5" class="mt-4" />
+                    <x-ui.input label="Catatan Ketersediaan" name="availability_note" :value="$facility->availability_note"
+                        class="mt-4" hint="Contoh: buka 08.00 - 17.00" />
+                </x-ui.section>
             </div>
         </div>
-        <div class="space-y-4">
-            <div>
-                <label class="mb-1 block text-sm font-semibold text-gray-700">Deskripsi</label>
-                <textarea name="description" rows="6"
-                    class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500">{{ old('description', $facility->description) }}</textarea>
-            </div>
-            <div>
-                <label class="mb-1 block text-sm font-semibold text-gray-700">Catatan Ketersediaan</label>
-                <input type="text" name="availability_note" value="{{ old('availability_note', $facility->availability_note) }}"
-                    class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500">
-            </div>
-        </div>
-    </div>
 
-    <div class="flex flex-wrap gap-4">
-        <div class="w-full rounded-2xl border border-gray-100 bg-gray-50 p-4 sm:flex sm:items-center sm:justify-between">
-            <div>
-                <label class="mb-1 block text-sm font-semibold text-gray-700">Urutan</label>
-                <input type="number" name="sort_order" value="{{ old('sort_order', $facility->sort_order ?? 0) }}" min="0" max="1000"
-                    class="rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500">
-            </div>
-            <label class="mt-4 inline-flex items-center gap-3 sm:mt-0">
-                <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $facility->is_active ?? true))
-                    class="h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500">
-                <span class="text-sm font-semibold text-gray-800">Tampilkan di publik</span>
-            </label>
-        </div>
-    </div>
+        <div class="mt-5 space-y-5 lg:col-span-1 lg:mt-0">
+            <x-ui.section title="Publikasi">
+                <x-ui.input label="Urutan" name="sort_order" type="number" :value="$facility->sort_order ?? 0"
+                    min="0" max="1000" />
+                <div class="mt-4">
+                    <x-ui.toggle name="is_active" label="Tampilkan di publik"
+                        helper="Nonaktifkan bila informasi sedang direvisi."
+                        :checked="old('is_active', $facility->is_active ?? true)" />
+                </div>
+            </x-ui.section>
 
-    <div class="flex flex-wrap gap-3">
-        <button type="submit"
-            class="inline-flex items-center gap-2 rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-green-700">
-            <i class="fas fa-save text-xs"></i>
-            {{ $isEdit ? 'Simpan Perubahan' : 'Simpan Fasilitas' }}
-        </button>
-        <a href="{{ route('admin.general-facilities.index') }}"
-            class="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
-            Batal
-        </a>
+            <x-ui.section class="sticky bottom-0">
+                <div class="flex flex-col gap-3 sm:flex-row">
+                    <x-ui.button type="submit" class="flex-1">
+                        <i class="fas fa-save text-xs"></i>
+                        {{ $isEdit ? 'Simpan Perubahan' : 'Simpan Fasilitas' }}
+                    </x-ui.button>
+                    <x-ui.button variant="secondary" :href="route('admin.general-facilities.index')" class="flex-1">
+                        Batal
+                    </x-ui.button>
+                </div>
+            </x-ui.section>
+        </div>
     </div>
 </form>

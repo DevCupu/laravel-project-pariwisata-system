@@ -32,6 +32,10 @@ class Activity extends Model
         'is_active' => 'boolean',
     ];
 
+    protected $attributes = [
+        'is_active' => true,
+    ];
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
@@ -68,7 +72,7 @@ class Activity extends Model
     {
         $data = [
             'name' => $this->title,
-            'slug' => 'activity-' . $this->slug,
+            'slug' => 'activity-'.$this->slug,
             'category' => 'wahana',
             'description' => $this->short_description ?: $this->description,
             'capacity_per_day' => 0,

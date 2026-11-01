@@ -19,7 +19,7 @@ class ContactFormSubmitted extends Mailable
 
     public function build()
     {
-        return $this->subject('Pesan Kontak Baru: ' . ($this->data['subject'] ?? '-'))
+        return $this->subject('Pesan Kontak Baru: '.($this->data['subject'] ?? '-'))
             ->markdown('emails.contact.submitted')
             ->with('data', $this->data);
     }

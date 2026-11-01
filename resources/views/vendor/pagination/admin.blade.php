@@ -1,32 +1,30 @@
 @if ($paginator->hasPages())
     <nav role="navigation" aria-label="Pagination" class="space-y-3">
-        <div class="flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
-            <p>
+        <div class="flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-base-content/70">
                 Menampilkan
-                <span class="font-semibold text-gray-900">
+                <span class="font-semibold text-base-content">
                     {{ $paginator->firstItem() ?? 0 }}-{{ $paginator->lastItem() ?? 0 }}
                 </span>
                 dari
-                <span class="font-semibold text-gray-900">{{ $paginator->total() }}</span>
+                <span class="font-semibold text-base-content">{{ $paginator->total() }}</span>
                 data
             </p>
-            <div class="inline-flex rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <div class="join">
                 @if ($paginator->onFirstPage())
-                    <span class="px-4 py-2 text-gray-400">&larr; Sebelumnya</span>
+                    <span class="join-item btn btn-sm btn-disabled">&larr; Sebelumnya</span>
                 @else
-                    <a href="{{ $paginator->previousPageUrl() }}" rel="prev"
-                        class="px-4 py-2 text-green-700 font-semibold hover:bg-green-50">&larr; Sebelumnya</a>
+                    <a href="{{ $paginator->previousPageUrl() }}" rel="prev" class="join-item btn btn-sm btn-outline">&larr; Sebelumnya</a>
                 @endif
 
-                <span class="px-4 py-2 text-gray-500 border-l border-gray-100">
+                <span class="join-item btn btn-sm btn-ghost no-animation pointer-events-none">
                     Halaman {{ $paginator->currentPage() }} / {{ $paginator->lastPage() }}
                 </span>
 
                 @if ($paginator->hasMorePages())
-                    <a href="{{ $paginator->nextPageUrl() }}" rel="next"
-                        class="px-4 py-2 text-green-700 font-semibold border-l border-gray-100 hover:bg-green-50">Berikutnya &rarr;</a>
+                    <a href="{{ $paginator->nextPageUrl() }}" rel="next" class="join-item btn btn-sm btn-outline">Berikutnya &rarr;</a>
                 @else
-                    <span class="px-4 py-2 text-gray-400 border-l border-gray-100">Berikutnya &rarr;</span>
+                    <span class="join-item btn btn-sm btn-disabled">Berikutnya &rarr;</span>
                 @endif
             </div>
         </div>
@@ -34,19 +32,19 @@
         <div class="flex flex-wrap items-center gap-2 text-sm">
             @foreach ($elements as $element)
                 @if (is_string($element))
-                    <span class="px-3 py-1 text-gray-400">{{ $element }}</span>
+                    <span class="px-3 py-1 text-base-content/40">{{ $element }}</span>
                 @endif
 
                 @if (is_array($element))
                     @foreach ($element as $page => $url)
                         @if ($page == $paginator->currentPage())
-                            <span aria-current="page"
-                                class="px-3 py-1 rounded-lg bg-green-600 text-white font-semibold">
+                            <a aria-current="page" href="{{ $url }}"
+                                class="btn btn-sm btn-primary btn-circle w-9 h-9 p-0 min-h-0">
                                 {{ $page }}
-                            </span>
+                            </a>
                         @else
                             <a href="{{ $url }}"
-                                class="px-3 py-1 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50">
+                                class="btn btn-sm btn-ghost btn-circle w-9 h-9 p-0 min-h-0">
                                 {{ $page }}
                             </a>
                         @endif

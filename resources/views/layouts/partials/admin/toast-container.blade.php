@@ -1,1 +1,1 @@
-<div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2 max-w-sm"></div>
+<div id="toast-container" class="toast toast-end z-[60] max-w-sm space-y-2"></div>

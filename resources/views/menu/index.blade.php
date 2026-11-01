@@ -1,137 +1,145 @@
 @extends('layouts.public')
 
+@php
+    use Illuminate\Support\Facades\Storage;
+@endphp
+
 @section('title', 'Menu Kafe')
+@section('meta_description', 'Signature coffee, comfort food, dan camilan hangat di Cafe Dante Pine Enrekang. Lihat menu lengkap beserta harga.')
 
 @section('content')
-    <section class="relative overflow-hidden bg-gradient-to-br from-amber-900 via-slate-900 to-black text-white">
-        <div
-            class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=1600&q=60')] bg-cover bg-center opacity-30">
-        </div>
-        <div class="relative mx-auto max-w-5xl px-4 py-24 text-center">
-            <p class="text-sm font-semibold uppercase tracking-[0.4em] text-amber-200">Cafe Dante Pine</p>
-            <h1 class="mt-4 text-4xl font-bold md:text-5xl">Signature coffee, comfort food, dan api unggun hangat</h1>
-            <p class="mt-4 text-lg text-amber-100">Menu dibagi per section agar mudah dipilih sesuai mood camping kamu.</p>
-        </div>
-    </section>
+    @include('partials.public.page-hero', [
+        'title' => 'Signature coffee, comfort food, dan suasana pinus',
+        'subtitle' => 'Nikmati hidangan hangat untuk menemani udara sejuk pegunungan. Pesan langsung di kafe atau via WhatsApp.',
+        'eyebrow' => 'Cafe Dante Pine',
+        'breadcrumb' => [['label' => 'Menu Kafe']],
+    ])
 
-    <section class="mx-auto max-w-5xl px-4 py-16">
-        @php
-            $q = request('q');
-            $selectedSection = request('section');
-            $availability = request('availability'); // 'all' | 'available' | 'unavailable'
-            $sort = request('sort'); // 'price_asc' | 'price_desc'
-            $allSections = $menuSections->keys();
-        @endphp
+    <section class="pn-section pn-section--tint">
+        <div class="pn-container">
+            @php
+                $q = request('q');
+                $selectedSection = request('section');
+                $availability = request('availability');
+                $sort = request('sort');
+                $allSections = $menuSections->keys();
+            @endphp
+            <form method="GET" class="pn-card mb-10 grid gap-3 p-5 lg:grid-cols-12">
+                <div class="relative lg:col-span-4">
+                    <input type="text" name="q" value="{{ old('q', $q) }}" placeholder="Cari menu atau deskripsi"
+                        class="pn-field pl-10" aria-label="Cari menu">
+                    <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400" aria-hidden="true"></i>
+                </div>
 
-        <div class="mb-8 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <form method="GET" class="flex w-full gap-3 md:w-2/3" aria-label="Filter menu">
-                <input type="text" name="q" value="{{ old('q', $q) }}" placeholder="Cari menu atau deskripsi"
-                    class="w-full rounded-xl border border-gray-200 px-4 py-2.5 focus:border-green-500 focus:ring-2 focus:ring-green-500 text-sm"
-                    aria-label="Cari menu">
-
-                <select name="section" class="rounded-xl border border-gray-200 px-3 py-2 text-sm">
+                <select name="section" class="pn-field lg:col-span-4" aria-label="Filter section">
                     <option value="">Semua Section</option>
                     @foreach ($allSections as $sec)
                         <option value="{{ $sec }}" @selected($selectedSection === $sec)>{{ \Illuminate\Support\Str::title(str_replace('-', ' ', $sec)) }}</option>
                     @endforeach
                 </select>
 
-                <select name="availability" class="rounded-xl border border-gray-200 px-3 py-2 text-sm">
+                <select name="availability" class="pn-field lg:col-span-2" aria-label="Filter ketersediaan">
                     <option value="all" @selected($availability === null || $availability === 'all')>Semua</option>
                     <option value="available" @selected($availability === 'available')>Tersedia</option>
                     <option value="unavailable" @selected($availability === 'unavailable')>Habis</option>
                 </select>
 
-                <select name="sort" class="rounded-xl border border-gray-200 px-3 py-2 text-sm">
+                <select name="sort" class="pn-field lg:col-span-2" aria-label="Urutkan">
                     <option value="">Urutkan</option>
                     <option value="price_asc" @selected($sort === 'price_asc')>Harga: Terendah</option>
                     <option value="price_desc" @selected($sort === 'price_desc')>Harga: Tertinggi</option>
                 </select>
 
-                <button type="submit" class="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white">Cari</button>
+                <div class="flex items-center justify-between gap-3 lg:col-span-12 lg:justify-end">
+                    <p class="text-sm text-slate-600">Menampilkan <strong>{{ $menuSections->sum(fn ($c) => $c->count()) }}</strong> item</p>
+                    <button type="submit" class="pn-btn pn-btn-primary !py-2.5">
+                        <i class="fas fa-magnifying-glass" aria-hidden="true"></i> Cari
+                    </button>
+                </div>
             </form>
 
-            <div class="mt-2 md:mt-0 text-sm text-gray-600">Menampilkan <strong>{{ $menuSections->sum(fn($c) => $c->count()) }}</strong> item</div>
-        </div>
-        @forelse ($menuSections as $section => $items)
-            @php
-                if ($selectedSection && $selectedSection !== $section) {
-                    continue;
-                }
-
-                // filter items locally for search / availability
-                $filtered = $items->filter(function($item) use ($q, $availability) {
-                    $matchQ = true;
-                    if ($q) {
-                        $needle = mb_strtolower($q);
-                        $hay = mb_strtolower($item->name . ' ' . ($item->short_description ?? $item->description ?? ''));
-                        $matchQ = str_contains($hay, $needle);
+            @forelse ($menuSections as $section => $items)
+                @php
+                    if ($selectedSection && $selectedSection !== $section) {
+                        continue;
                     }
 
-                    $matchAvailability = true;
-                    if ($availability === 'available') {
-                        $matchAvailability = (bool) $item->is_available;
-                    } elseif ($availability === 'unavailable') {
-                        $matchAvailability = ! (bool) $item->is_available;
+                    $filtered = $items->filter(function ($item) use ($q, $availability) {
+                        $matchQ = true;
+                        if ($q) {
+                            $needle = mb_strtolower($q);
+                            $hay = mb_strtolower($item->name . ' ' . ($item->short_description ?? $item->description ?? ''));
+                            $matchQ = str_contains($hay, $needle);
+                        }
+
+                        $matchAvailability = true;
+                        if ($availability === 'available') {
+                            $matchAvailability = (bool) $item->is_available;
+                        } elseif ($availability === 'unavailable') {
+                            $matchAvailability = ! (bool) $item->is_available;
+                        }
+
+                        return $matchQ && $matchAvailability;
+                    });
+
+                    if ($sort === 'price_asc') {
+                        $filtered = $filtered->sortBy('price');
+                    } elseif ($sort === 'price_desc') {
+                        $filtered = $filtered->sortByDesc('price');
                     }
-
-                    return $matchQ && $matchAvailability;
-                });
-
-                if ($sort === 'price_asc') {
-                    $filtered = $filtered->sortBy('price');
-                } elseif ($sort === 'price_desc') {
-                    $filtered = $filtered->sortByDesc('price');
-                }
-            @endphp
-            <div class="mb-10 rounded-3xl border border-amber-100 bg-white/90 p-6 shadow">
-                <div class="mb-6 border-b border-gray-100 pb-4">
-                    <p class="text-xs font-semibold uppercase tracking-[0.4em] text-amber-500">Section</p>
-                    <div class="flex flex-wrap items-center justify-between gap-3">
-                        <h2 class="text-3xl font-semibold text-gray-900">
-                            {{ \Illuminate\Support\Str::title(str_replace('-', ' ', $section)) }}</h2>
-                        <span class="text-sm text-gray-500">{{ $items->count() }} item</span>
+                @endphp
+                <div class="pn-reveal mb-12">
+                    <div class="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-4">
+                        <div>
+                            <span class="pn-eyebrow text-emerald-600">Section</span>
+                            <h2 class="pn-heading mt-3 text-2xl sm:text-3xl">{{ \Illuminate\Support\Str::title(str_replace('-', ' ', $section)) }}</h2>
+                        </div>
+                        <span class="text-sm font-semibold text-slate-500">{{ $items->count() }} item</span>
                     </div>
+
+                    @if ($filtered->isEmpty())
+                        <div class="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-slate-500">Tidak ada item sesuai filter.</div>
+                    @else
+                        <div class="grid gap-4 md:grid-cols-2">
+                            @foreach ($filtered as $item)
+                                <article class="pn-card pn-card-hover flex gap-4 p-4">
+                                    <div class="h-28 w-28 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                                        <img src="{{ $item->image_url ?? ($item->image_path ? Storage::url($item->image_path) : asset('assets-beranda/home.jpg')) }}" alt="{{ $item->name }}" loading="lazy" decoding="async" class="h-full w-full object-cover">
+                                    </div>
+                                    <div class="flex flex-1 flex-col">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div>
+                                                <h3 class="text-lg font-bold text-slate-900">{{ $item->name }}</h3>
+                                                <p class="mt-1 text-sm text-slate-600">{{ $item->short_description ?? \Illuminate\Support\Str::limit($item->description, 120) }}</p>
+                                                <p class="mt-2 text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">{{ strtoupper($item->type) }}</p>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="text-xl font-bold text-emerald-700">Rp {{ number_format($item->price, 0, ',', '.') }}</p>
+                                                <p class="text-xs {{ $item->is_available ? 'text-emerald-600' : 'text-rose-500' }}">{{ $item->is_available ? 'Tersedia' : 'Habis' }}</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-auto flex flex-wrap items-center gap-2 pt-3">
+                                            @if ($item->badge)
+                                                <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{{ $item->badge }}</span>
+                                            @endif
+                                            <a href="{{ route('menu.index') }}?section={{ $section }}" class="text-xs font-medium text-slate-500 hover:text-emerald-700">Lihat section ini</a>
+                                            <a href="https://wa.me/6282145671234?text={{ urlencode('Halo, saya ingin pesan: ' . $item->name . ' (Rp ' . number_format($item->price, 0, ',', '.') . ')') }}" target="_blank" rel="noopener"
+                                                class="ml-auto inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                                                <i class="fab fa-whatsapp" aria-hidden="true"></i> Pesan
+                                            </a>
+                                        </div>
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
-                @if($filtered->isEmpty())
-                    <div class="rounded-2xl border border-dashed border-gray-200 bg-white p-6 text-center text-gray-500">Tidak ada item sesuai filter.</div>
-                @else
-                    <div class="grid gap-4 grid-cols-1 md:grid-cols-2">
-                        @foreach ($filtered as $item)
-                            <article class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm flex gap-4">
-                                <div class="w-28 h-28 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
-                                    <img src="{{ $item->image_url ?? ($item->image_path ? Storage::url($item->image_path) : asset('assets-beranda/home.jpg')) }}" alt="{{ $item->name }}" class="h-full w-full object-cover">
-                                </div>
-                                <div class="flex-1">
-                                    <div class="flex items-start justify-between gap-3">
-                                        <div>
-                                            <h3 class="text-lg font-semibold text-gray-900">{{ $item->name }}</h3>
-                                            <p class="text-sm text-gray-600 mt-1">{{ $item->short_description ?? \Illuminate\Support\Str::limit($item->description, 120) }}</p>
-                                            <div class="mt-2 text-xs uppercase tracking-[0.4em] text-gray-400">{{ strtoupper($item->type) }}</div>
-                                        </div>
-                                        <div class="text-right">
-                                            <p class="text-xl font-semibold text-amber-700">Rp {{ number_format($item->price, 0, ',', '.') }}</p>
-                                            <p class="text-xs text-gray-500">{{ $item->is_available ? 'Tersedia' : 'Habis' }}</p>
-                                        </div>
-                                    </div>
-
-                                    <div class="mt-3 flex flex-wrap gap-2">
-                                        @if($item->badge)
-                                            <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">{{ $item->badge }}</span>
-                                        @endif
-                                        <a href="{{ route('menu.index') }}?section={{ $section }}" class="text-xs text-gray-500">Lihat semua di section</a>
-                                        <a href="https://wa.me/6282145671234?text={{ urlencode('Halo, saya ingin pesan: ' . $item->name . ' (Rp ' . number_format($item->price,0,',','.') . ')') }}" target="_blank" rel="noopener" class="ml-auto inline-flex items-center gap-2 rounded-xl bg-green-600 px-3 py-1 text-sm font-semibold text-white hover:bg-green-700">Pesan via WhatsApp</a>
-                                    </div>
-                                </div>
-                            </article>
-                        @endforeach
-                    </div>
-                @endif
-            </div>
-        @empty
-            <div class="rounded-3xl border border-dashed border-amber-200 bg-white p-12 text-center text-gray-500">
-                Menu belum tersedia.
-            </div>
-        @endforelse
+            @empty
+                <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center text-slate-500">
+                    Menu belum tersedia.
+                </div>
+            @endforelse
+        </div>
     </section>
 @endsection

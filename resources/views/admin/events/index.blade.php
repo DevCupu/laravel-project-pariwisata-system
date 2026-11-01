@@ -6,126 +6,118 @@
 
 @section('content')
     <div class="space-y-5">
-        @if (session('admin_success'))
-            <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-                {{ session('admin_success') }}
-            </div>
-        @endif
-
-        <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div class="flex flex-col gap-4 border-b border-gray-100 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-800">Daftar Event</h3>
-                    <p class="text-sm text-gray-500">Kelola event, promo, dan kegiatan khusus.</p>
-                </div>
-                <div class="flex w-full flex-col gap-3 lg:w-auto lg:flex-row lg:items-center">
-                    <form method="GET" class="w-full lg:w-64">
-                        <div class="relative">
-                            <input type="text" name="q" value="{{ request('q') }}" placeholder="Cari event"
-                                class="w-full rounded-xl border border-gray-200 px-4 py-2.5 pl-10 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500">
-                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        </div>
-                    </form>
-                    <form method="GET" class="flex items-center gap-2 text-sm">
-                        <input type="hidden" name="q" value="{{ request('q') }}">
-                        <select name="status" onchange="this.form.submit()"
-                            class="rounded-xl border border-gray-200 px-4 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-500">
-                            <option value="">Semua Status</option>
-                            <option value="active" @selected($statusFilter === 'active')>Aktif</option>
-                            <option value="inactive" @selected($statusFilter === 'inactive')>Nonaktif</option>
-                        </select>
-                    </form>
-                    <a href="{{ route('admin.events.create') }}"
-                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
-                        <i class="fas fa-plus text-xs"></i>
-                        Tambah Event
-                    </a>
-                </div>
-            </div>
+        <x-ui.card title="Daftar Event" subtitle="Kelola event, promo, dan kegiatan khusus.">
+            @slot('actions')
+                <form method="GET" class="w-full lg:w-56">
+                    <div class="relative">
+                        <input type="text" name="q" value="{{ request('q') }}" placeholder="Cari event"
+                            class="input input-bordered input-sm w-full pl-9">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-base-content/40"></i>
+                    </div>
+                </form>
+                <form method="GET" class="flex items-center gap-2">
+                    <input type="hidden" name="q" value="{{ request('q') }}">
+                    <select name="status" onchange="this.form.submit()"
+                        class="select select-bordered select-sm">
+                        <option value="">Semua Status</option>
+                        <option value="active" @selected($statusFilter === 'active')>Aktif</option>
+                        <option value="inactive" @selected($statusFilter === 'inactive')>Nonaktif</option>
+                    </select>
+                </form>
+                <x-ui.button :href="route('admin.events.create')">
+                    <i class="fas fa-plus text-xs"></i>
+                    Tambah Event
+                </x-ui.button>
+            @endslot
 
             <div class="overflow-x-auto">
-                <table class="min-w-[900px] w-full border-collapse text-sm text-gray-800">
-                    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                <table class="table table-zebra w-full text-sm">
+                    <thead class="text-xs font-semibold uppercase tracking-wide text-base-content/50">
                         <tr>
-                            <th class="border-b border-slate-200 px-5 py-3 text-left">Event</th>
-                            <th class="border-b border-slate-200 px-5 py-3 text-left">Tipe</th>
-                            <th class="border-b border-slate-200 px-5 py-3 text-left">Tanggal</th>
-                            <th class="border-b border-slate-200 px-5 py-3 text-left">Status</th>
-                            <th class="border-b border-slate-200 px-5 py-3 text-left">Highlight</th>
-                            <th class="border-b border-slate-200 px-5 py-3 text-left">Aksi</th>
+                            <th class="text-left">Event</th>
+                            <th class="text-left">Tipe</th>
+                            <th class="text-left">Tanggal</th>
+                            <th class="text-left">Status</th>
+                            <th class="text-left">Highlight</th>
+                            <th class="text-left">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($events as $event)
-                            <tr class="border-b border-slate-100 hover:bg-slate-50">
-                                <td class="px-5 py-3 align-top">
-                                    <p class="font-semibold text-gray-900">{{ $event->title }}</p>
-                                    <p class="text-xs text-gray-500">Slug: {{ $event->slug }}</p>
-                                    <p class="text-xs text-gray-500">{{ $event->excerpt }}</p>
+                            <tr>
+                                <td class="align-top">
+                                    <p class="font-semibold text-slate-900">{{ $event->title }}</p>
+                                    <p class="mt-0.5 text-[11px] text-slate-400">slug: {{ $event->slug }}</p>
+                                    <p class="text-xs text-slate-500">{{ $event->excerpt }}</p>
                                 </td>
-                                <td class="px-5 py-3 align-top">
-                                    <span class="inline-flex items-center rounded-full px-3 py-0.5 text-xs font-semibold {{ $event->type === 'promo' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700' }}">{{ ucfirst($event->type) }}</span>
+                                <td class="align-top">
+                                    <x-ui.badge :tone="$event->type === 'promo' ? 'success' : 'neutral'">
+                                        {{ ucfirst($event->type) }}
+                                    </x-ui.badge>
                                 </td>
-                                <td class="px-5 py-3 align-top">{{ $event->start_date ? $event->start_date->format('d M Y') : '–' }} @if($event->end_date) - {{ $event->end_date->format('d M Y') }} @endif</td>
-                                <td class="px-5 py-3 align-top">
-                                    <span class="inline-flex items-center rounded-full px-3 py-0.5 text-xs font-semibold {{ $event->is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
+                                <td class="align-top">
+                                    {{ $event->start_date ? $event->start_date->format('d M Y') : '–' }}
+                                    @if ($event->end_date) – {{ $event->end_date->format('d M Y') }} @endif
+                                </td>
+                                <td class="align-top">
+                                    <x-ui.badge :tone="$event->is_active ? 'success' : 'neutral'" dot>
                                         {{ $event->is_active ? 'Aktif' : 'Nonaktif' }}
-                                    </span>
+                                    </x-ui.badge>
                                 </td>
-                                <td class="px-5 py-3 align-top">
-                                    <span class="inline-flex items-center rounded-full px-3 py-0.5 text-xs font-semibold {{ $event->is_featured ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600' }}">
+                                <td class="align-top">
+                                    <x-ui.badge :tone="$event->is_featured ? 'warning' : 'neutral'">
                                         {{ $event->is_featured ? 'Ditampilkan' : 'Biasa' }}
-                                    </span>
+                                    </x-ui.badge>
                                 </td>
-                                <td class="px-5 py-3 align-top">
-                                    <div class="flex flex-wrap gap-2 text-xs">
-                                        <a href="{{ route('admin.events.edit', $event) }}"
-                                            class="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 font-semibold text-blue-700 hover:bg-blue-100">
-                                            <i class="fas fa-pen text-xs"></i>
+                                <td class="align-top">
+                                    <div class="flex flex-wrap items-center gap-2 text-xs">
+                                        <x-ui.button size="sm" variant="soft-blue" :href="route('admin.events.edit', $event)">
+                                            <i class="fas fa-pen text-[10px]"></i>
                                             Edit
-                                        </a>
+                                        </x-ui.button>
                                         <form method="POST" action="{{ route('admin.events.toggle-status', $event) }}">
                                             @csrf
                                             @method('PATCH')
-                                            <button type="submit"
-                                                class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-50">
-                                                <i class="fas fa-toggle-on text-sm"></i>
+                                            <x-ui.button size="sm" variant="secondary" type="submit">
+                                                <i class="fas fa-toggle-on text-[10px]"></i>
                                                 {{ $event->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
-                                            </button>
+                                            </x-ui.button>
                                         </form>
                                         <form method="POST" action="{{ route('admin.events.toggle-featured', $event) }}">
                                             @csrf
                                             @method('PATCH')
-                                            <button type="submit"
-                                                class="inline-flex items-center gap-1 rounded-lg border border-amber-200 px-3 py-1.5 font-semibold text-amber-700 hover:bg-amber-50">
-                                                <i class="fas fa-star text-sm"></i>
+                                            <x-ui.button size="sm" variant="warning" type="submit">
+                                                <i class="fas fa-star text-[10px]"></i>
                                                 {{ $event->is_featured ? 'Biasa' : 'Highlight' }}
-                                            </button>
+                                            </x-ui.button>
                                         </form>
-                                        <form method="POST" action="{{ route('admin.events.destroy', $event) }}" onsubmit="return confirm('Hapus event ini?');">
+                                        <form method="POST" action="{{ route('admin.events.destroy', $event) }}"
+                                            data-confirm="Hapus event &quot;{{ $event->title }}&quot;?">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit"
-                                                class="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 font-semibold text-red-700 hover:bg-red-100">
-                                                <i class="fas fa-trash text-xs"></i>
+                                            <x-ui.button size="sm" variant="danger" type="submit">
+                                                <i class="fas fa-trash text-[10px]"></i>
                                                 Hapus
-                                            </button>
+                                            </x-ui.button>
                                         </form>
                                     </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-8 text-center text-gray-500">Belum ada event.</td>
+                                <td colspan="6">
+                                    <x-ui.empty-state icon="fa-calendar-days" title="Belum ada event"
+                                        text="Tambahkan event atau promo pertama untuk ditampilkan di situs." class="py-8" />
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
 
-            <div class="border-t border-gray-100 px-6 py-4">
+            <div class="border-t border-base-300/60 px-6 py-4">
                 {{ $events->links('vendor.pagination.admin') }}
             </div>
-        </div>
+        </x-ui.card>
     </div>
 @endsection

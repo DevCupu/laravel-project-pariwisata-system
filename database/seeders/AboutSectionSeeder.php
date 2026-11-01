@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\AboutSection;
+use Illuminate\Database\Seeder;
 
 class AboutSectionSeeder extends Seeder
 {
@@ -19,7 +19,7 @@ class AboutSectionSeeder extends Seeder
             [
                 'title' => 'Lokasi & Jam Operasional',
                 'slug' => 'lokasi',
-                'content' => "Jalur Poros Enrekang - Tana Toraja, buka setiap hari pukul 08.00 - 22.00 WITA. Pengunjung disarankan reservasi terlebih dahulu untuk pengalaman terbaik.",
+                'content' => 'Jalur Poros Enrekang - Tana Toraja, buka setiap hari pukul 08.00 - 22.00 WITA. Pengunjung disarankan reservasi terlebih dahulu untuk pengalaman terbaik.',
                 'display_order' => 2,
             ],
         ];

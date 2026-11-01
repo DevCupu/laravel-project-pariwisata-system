@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\CampingPackage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class CampingPackageController extends Controller
@@ -58,7 +58,7 @@ class CampingPackageController extends Controller
     public function create(): View
     {
         return view('admin.camping-packages.create', [
-            'package' => new CampingPackage(),
+            'package' => new CampingPackage,
         ]);
     }
 
@@ -149,7 +149,7 @@ class CampingPackageController extends Controller
     {
         $uniqueSlugRule = 'unique:camping_packages,slug';
         if ($ignoreId) {
-            $uniqueSlugRule .= ',' . $ignoreId;
+            $uniqueSlugRule .= ','.$ignoreId;
         }
 
         return $request->validate([
@@ -182,7 +182,7 @@ class CampingPackageController extends Controller
 
     private function generateSlug(array $payload, ?int $ignoreId = null): string
     {
-        $base = Str::slug($payload['slug'] ?: $payload['name']) ?: 'camping-package';
+        $base = Str::slug(($payload['slug'] ?? null) ?: $payload['name']) ?: 'camping-package';
         $slug = $base;
         $counter = 1;
 
@@ -191,7 +191,7 @@ class CampingPackageController extends Controller
                 ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
                 ->exists()
         ) {
-            $slug = $base . '-' . $counter;
+            $slug = $base.'-'.$counter;
             $counter++;
         }
 

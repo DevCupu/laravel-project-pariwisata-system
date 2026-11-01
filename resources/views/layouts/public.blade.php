@@ -1,22 +1,57 @@
-<!-- Ganti semua hover:text-blue-300 menjadi hover:text-green-400 pada menu navigasi -->
+<!DOCTYPE html>
 <html lang="id">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title') - Dante Pine Enrekang</title>
+    <meta name="description"
+        content="@yield('meta_description', 'Dante Pine Enrekang — kawasan wisata hutan pinus dengan aktivitas alam, spot foto, kafe, dan paket camping di jalur Poros Enrekang - Tana Toraja.')">
+    <meta name="theme-color" content="#065f46">
+    <script>
+        document.documentElement.classList.add('js');
+    </script>
+    <link rel="icon" type="image/jpeg" href="{{ asset('assets-beranda/logo.jpg') }}">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="icon" type="image/svg+xml" href="{{ asset('logo-dpe.svg') }}">
-    <!-- Scripts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,600;1,9..144,700&display=swap">
+
+    @php
+        $metaTitle = trim($__env->yieldContent('title')) ?: 'Dante Pine Enrekang';
+        $metaDescription = trim($__env->yieldContent('meta_description')) ?: 'Kawasan wisata alam terpadu di jalur Poros Enrekang - Tana Toraja. Hutan pinus, kabut pagi, dan panorama pegunungan untuk pengalaman liburan yang aman dan berkesan.';
+        $metaImage = trim($__env->yieldContent('og_image')) ?: asset('assets-beranda/home.jpg');
+    @endphp
+    <link rel="canonical" href="{{ url()->current() }}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Dante Pine Enrekang">
+    <meta property="og:locale" content="id_ID">
+    <meta property="og:title" content="{{ $metaTitle }}">
+    <meta property="og:description" content="{{ $metaDescription }}">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:image" content="{{ $metaImage }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $metaTitle }}">
+    <meta name="twitter:description" content="{{ $metaDescription }}">
+    <meta name="twitter:image" content="{{ $metaImage }}">
+
+    @stack('preload')
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @stack('head')
 </head>
 
-<body class="bg-transparent" style="margin:0; padding:0;">
+<body class="bg-white text-slate-800 antialiased">
 
     @php
         $navAboutSections = ($navAboutSections ?? collect())->sortBy('display_order');
         $primaryAboutAnchor = optional($navAboutSections->first())->slug ?? 'tentang-kami';
         $isHome = request()->routeIs('home') || request()->is('/');
+        $waNumber = '6282145671234';
+        $waText = rawurlencode('Halo Dante Pine Enrekang, saya ingin bertanya tentang kunjungan.');
+        $waLink = "https://wa.me/{$waNumber}?text={$waText}";
         $homeAnchor = function (?string $fragment = null) use ($isHome) {
             $slug = ltrim($fragment ?? '', '#');
             if ($slug === '') {
@@ -28,349 +63,313 @@
     @endphp
 
     <!-- Navigation -->
-    <nav class="fixed top-0 w-full z-50 {{ $isHome ? 'bg-transparent' : 'bg-gradient-to-r from-green-50 via-white to-green-100 shadow-lg border-b border-green-100' }}">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex items-center justify-between py-4 gap-4">
-                <div class="flex items-center">
-                    <img src="{{ asset('logo-dpe.svg') }}" alt="Dante Pine Enrekang" class="h-8 w-8 mr-2 select-none" />
-                    <a href="{{ route('home') }}" class="logo-text font-bold text-gray-900">Dante Pine</a>
-                </div>
-                <div class="hidden md:flex flex-wrap items-center justify-end gap-2 gap-y-3 xl:gap-4 text-sm lg:text-base">
-                    <a href="{{ route('home') }}" class="nav-link">Beranda</a>
-                    <div class="group relative">
-                        <button class="nav-link flex items-center gap-1" aria-haspopup="true" aria-expanded="false">
-                            Tentang Kami <i class="fas fa-chevron-down text-xs"></i>
+    <nav id="pn-nav" class="pn-nav pn-nav--solid">
+        <div class="pn-container">
+            <div class="flex h-16 items-center justify-between gap-4">
+                <a href="{{ route('home') }}" class="flex items-center gap-2.5" aria-label="Dante Pine Enrekang">
+                    <img src="{{ asset('assets-beranda/logo.jpg') }}" alt="" class="h-9 w-9 rounded-xl object-cover select-none">
+                    <span class="pn-brand">Dante<span class="pn-brand-pine">Pine</span></span>
+                </a>
+
+                <div class="hidden items-center gap-1 lg:flex">
+                    <a href="{{ route('home') }}" class="pn-nav-link @if ($isHome) is-active @endif">Beranda</a>
+
+                    <div class="pn-group relative">
+                        <button class="pn-nav-link @if ($isHome) is-active @endif" aria-haspopup="true">
+                            Tentang Kami <i class="fas fa-chevron-down text-[10px]" aria-hidden="true"></i>
                         </button>
-                        <div class="dropdown-panel">
+                        <div class="pn-dropdown">
                             @forelse ($navAboutSections as $section)
-                                <a href="{{ $homeAnchor($section->slug) }}" class="dropdown-item">{{ $section->title }}</a>
+                                <a href="{{ $homeAnchor($section->slug) }}" class="pn-dropdown-item">{{ $section->title }}</a>
                             @empty
-                                <span class="dropdown-item text-gray-400">Belum ada konten</span>
+                                <span class="pn-dropdown-item text-slate-400">Belum ada konten</span>
                             @endforelse
                         </div>
                     </div>
-                    <div class="group relative">
-                        <button class="nav-link flex items-center gap-1" aria-haspopup="true" aria-expanded="false">
-                            Aktivitas & Fasilitas <i class="fas fa-chevron-down text-xs"></i>
+
+                    <div class="pn-group relative">
+                        <button class="pn-nav-link @if (request()->routeIs('activities.*', 'menu.*')) is-active @endif" aria-haspopup="true">
+                            Jelajahi <i class="fas fa-chevron-down text-xs"></i>
                         </button>
-                        <div class="dropdown-panel">
-                            <a href="{{ route('activities.index') }}" class="dropdown-item">Daftar Aktivitas & Wahana</a>
-                            <a href="{{ route('menu.index') }}" class="dropdown-item">Menu Kafe & Harga</a>
-                            <a href="{{ $homeAnchor('spot-foto') }}" class="dropdown-item">Spot Foto</a>
-                            <a href="{{ $homeAnchor('fasilitas-umum') }}" class="dropdown-item">Fasilitas Umum</a>
-                            <a href="{{ $homeAnchor('paket-camping') }}" class="dropdown-item">Paket Camping</a>
+                        <div class="pn-dropdown">
+                            <a href="{{ route('activities.index') }}" class="pn-dropdown-item">Aktivitas & Wahana</a>
+                            <a href="{{ route('menu.index') }}" class="pn-dropdown-item">Menu Kafe &amp; Harga</a>
+                            <a href="{{ $homeAnchor('spot-foto') }}" class="pn-dropdown-item">Spot Foto</a>
+                            <a href="{{ $homeAnchor('fasilitas-umum') }}" class="pn-dropdown-item">Fasilitas Umum</a>
+                            <a href="{{ $homeAnchor('paket-camping') }}" class="pn-dropdown-item">Paket Camping</a>
                         </div>
                     </div>
-                    <a href="{{ route('events.index') }}" class="nav-link">Promo & Event</a>
-                    <a href="{{ route('contact.form') }}" class="nav-link">Hubungi Kami</a>
-                    <a href="{{ route('booking.form') }}" class="booking-btn booking-btn">
-                        <i class="fas fa-calendar-check mr-2"></i> Booking Sekarang
+
+                    <a href="{{ route('events.index') }}" class="pn-nav-link @if (request()->routeIs('events.*')) is-active @endif">Promo &amp; Event</a>
+                    <a href="{{ $homeAnchor('faq') }}" class="pn-nav-link">FAQ</a>
+                    <a href="{{ route('contact.form') }}" class="pn-nav-link @if (request()->routeIs('contact.*')) is-active @endif">Kontak</a>
+                    <a href="{{ route('booking.form') }}" class="pn-btn pn-btn-primary ml-2 !px-5 !py-2.5">
+                        <i class="fas fa-calendar-check"></i> Booking Sekarang
                     </a>
                 </div>
-                <button id="mobile-menu-btn" class="md:hidden text-gray-900">
-                        <i class="fas fa-bars text-2xl"></i>
+
+                <button id="pn-mobile-btn" class="pn-nav-link lg:hidden" aria-label="Buka menu" aria-expanded="false"
+                    aria-controls="pn-mobile-menu">
+                    <i class="fas fa-bars text-xl"></i>
                 </button>
             </div>
         </div>
-            <div id="mobile-menu" class="md:hidden hidden bg-white/95 text-gray-900 shadow-2xl border-t border-green-200">
-            <div class="flex flex-col px-4 pb-4 space-y-1">
-                <a href="{{ route('home') }}" class="mobile-link">Beranda</a>
 
-                <a href="{{ $homeAnchor($primaryAboutAnchor) }}" class="mobile-link">Tentang Kami</a>
-                <div class="mobile-sublinks">
-                    @forelse ($navAboutSections as $section)
-                        <a href="{{ $homeAnchor($section->slug) }}" class="mobile-sublink">{{ $section->title }}</a>
-                    @empty
-                        <span class="mobile-sublink text-gray-400">Belum ada konten</span>
-                    @endforelse
-                </div>
+        <!-- Mobile menu -->
+        <div id="pn-mobile-menu" class="hidden lg:hidden bg-white/95 backdrop-blur-xl border-t border-slate-200 text-slate-900 shadow-2xl">
+            <div class="pn-container flex max-h-[calc(100dvh-4rem)] flex-col overflow-y-auto pb-6 pt-2">
+                <a href="{{ route('home') }}" class="pn-mobile-link">Beranda</a>
 
-                <button id="mobile-activities-btn" class="mobile-link flex items-center justify-between">
-                    <span>Aktivitas & Fasilitas</span>
-                    <i class="fas fa-chevron-down" id="mobile-activities-icon"></i>
-                </button>
-                <div id="mobile-activities-list" class="mobile-sublinks hidden">
-                    <a href="{{ route('activities.index') }}" class="mobile-sublink">Daftar Aktivitas & Wahana</a>
-                    <a href="{{ route('menu.index') }}" class="mobile-sublink">Menu Kafe & Harga</a>
-                    <a href="{{ $homeAnchor('spot-foto') }}" class="mobile-sublink">Spot Foto</a>
-                    <a href="{{ $homeAnchor('fasilitas-umum') }}" class="mobile-sublink">Fasilitas Umum</a>
-                    <a href="{{ $homeAnchor('paket-camping') }}" class="mobile-sublink">Paket Camping</a>
-                </div>
+                <details class="group border-b border-slate-200">
+                    <summary class="pn-mobile-link cursor-pointer list-none border-0">
+                        <span>Tentang Kami</span>
+                        <i class="fas fa-chevron-down text-xs transition-transform group-open:rotate-180"></i>
+                    </summary>
+                    <div class="pb-3 pt-1">
+                        @forelse ($navAboutSections as $section)
+                            <a href="{{ $homeAnchor($section->slug) }}" class="pn-mobile-sublink">{{ $section->title }}</a>
+                        @empty
+                            <span class="pn-mobile-sublink text-slate-400">Belum ada konten</span>
+                        @endforelse
+                    </div>
+                </details>
 
-                <a href="{{ route('events.index') }}" class="mobile-link">Promo & Event</a>
-                <a href="{{ route('contact.form') }}" class="mobile-link">Hubungi Kami</a>
-                <a href="{{ route('booking.form') }}" class="mobile-booking"><i class="fas fa-calendar-check mr-2"></i> Booking Sekarang</a>
+                <details class="group border-b border-slate-200">
+                    <summary class="pn-mobile-link cursor-pointer list-none border-0">
+                        <span>Jelajahi</span>
+                        <i class="fas fa-chevron-down text-xs transition-transform group-open:rotate-180"></i>
+                    </summary>
+                    <div class="pb-3 pt-1">
+                        <a href="{{ route('activities.index') }}" class="pn-mobile-sublink">Aktivitas & Wahana</a>
+                        <a href="{{ route('menu.index') }}" class="pn-mobile-sublink">Menu Kafe & Harga</a>
+                        <a href="{{ $homeAnchor('spot-foto') }}" class="pn-mobile-sublink">Spot Foto</a>
+                        <a href="{{ $homeAnchor('fasilitas-umum') }}" class="pn-mobile-sublink">Fasilitas Umum</a>
+                        <a href="{{ $homeAnchor('paket-camping') }}" class="pn-mobile-sublink">Paket Camping</a>
+                    </div>
+                </details>
+
+                <a href="{{ route('events.index') }}" class="pn-mobile-link">Promo &amp; Event</a>
+                <a href="{{ $homeAnchor('faq') }}" class="pn-mobile-link">FAQ</a>
+                <a href="{{ route('contact.form') }}" class="pn-mobile-link">Kontak</a>
+                <a href="{{ route('booking.form') }}" class="pn-btn pn-btn-primary mt-5 w-full">
+                    <i class="fas fa-calendar-check"></i> Booking Sekarang
+                </a>
             </div>
         </div>
     </nav>
 
-    <style>
-        @keyframes fade-in-down {
-            0% {
-                opacity: 0;
-                transform: translateY(-16px);
-            }
-
-            100% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .animate-fade-in-down {
-            animation: fade-in-down 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        /* Responsive font for logo */
-        .logo-text { font-size: clamp(1.2rem, 2vw, 1.6rem); }
-        .nav-link {
-            color: #0f172a;
-            font-weight: 600;
-            padding: 0.35rem 0.75rem;
-            border-radius: 0.375rem;
-            font-size: 0.95rem;
-        }
-        .nav-link:hover { color: #047857; }
-        .dropdown-panel {
-            display: none;
-            position: absolute;
-            top: calc(100% + 0.75rem);
-            left: 0;
-            min-width: 15rem;
-            background: rgba(255, 255, 255, 0.98);
-            border-radius: 1rem;
-            border: 1px solid rgba(15, 23, 42, 0.08);
-            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
-            backdrop-filter: blur(12px);
-            padding: 0.75rem;
-            animation: fade-in-down 0.25s ease;
-            z-index: 30;
-        }
-        .group:hover .dropdown-panel,
-        .group:focus-within .dropdown-panel { display: block; }
-        .dropdown-item {
-            display: block;
-            padding: 0.6rem 0.85rem;
-            font-size: 0.92rem;
-            color: #0f172a;
-            font-weight: 600;
-            border-radius: 0.65rem;
-            transition: background 0.2s ease, color 0.2s ease;
-        }
-        .dropdown-item:hover {
-            background: rgba(16, 185, 129, 0.08);
-            color: #065f46;
-        }
-        .booking-btn {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.5rem 1.1rem;
-            border-radius: 999px;
-            background: #22c55e;
-            color: white;
-            font-weight: 600;
-        }
-        .booking-btn:hover { background: #15803d; }
-        .booking-btn--light {
-            background: #0f766e;
-            color: #f0fdfa;
-            border: 1px solid rgba(15, 118, 110, 0.2);
-        }
-        .booking-btn--light:hover {
-            background: #115e59;
-            color: #ecfdf5;
-        }
-        .mobile-link {
-            width: 100%;
-            text-align: left;
-            padding: 0.85rem 0;
-            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-            font-weight: 600;
-            color: #0f172a;
-        }
-        .mobile-link:hover {
-            color: #047857;
-        }
-        .mobile-sublinks {
-            display: flex;
-            flex-direction: column;
-            padding: 0.35rem 0 0.75rem 0.75rem;
-            margin-top: -0.35rem;
-            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-        }
-        .mobile-sublink {
-            padding: 0.35rem 0;
-            font-size: 0.9rem;
-            color: #475569;
-        }
-        .mobile-sublink:hover {
-            color: #047857;
-        }
-        .mobile-booking {
-            margin-top: 0.85rem;
-            padding: 0.85rem;
-            border-radius: 0.75rem;
-            text-align: center;
-            background: #16a34a;
-            color: #fff;
-            font-weight: 700;
-            box-shadow: 0 10px 25px rgba(22, 163, 74, 0.25);
-        }
-
-        @media (max-width: 1024px) {
-            .nav-link {
-                padding: 0.25rem 0.55rem;
-                font-size: 0.85rem;
-            }
-            .booking-btn {
-                padding: 0.45rem 1rem;
-                font-size: 0.85rem;
-            }
-        }
-
-        @if($isHome)
-        /* Homepage-only transparent nav adjustments */
-        nav {
-            background: transparent !important;
-            box-shadow: none !important;
-            border-bottom: none !important;
-        }
-        nav .logo-text,
-        nav .nav-link,
-        nav .nav-link i,
-        #mobile-menu-btn,
-        #mobile-menu-btn i {
-            color: #ffffff !important;
-        }
-        nav .booking-btn--light {
-            background: rgba(15, 118, 110, 0.35);
-            border-color: rgba(255, 255, 255, 0.45);
-            color: #ffffff;
-        }
-        nav .booking-btn--light:hover {
-            background: rgba(15, 94, 89, 0.6);
-            color: #ffffff;
-        }
-        nav .dropdown-panel {
-            background: rgba(255, 255, 255, 0.95);
-            color: #0f172a;
-        }
-        nav .dropdown-item {
-            color: #0f172a;
-        }
-        @endif
-    </style>
+    @include('partials.public.floating-actions', ['waLink' => $waLink, 'phone' => '0821-4567-1234'])
 
     <!-- Main Content -->
-    <main class="pt-16 mb-16">
+    <main class="@yield('main-class', 'pt-16')">
         @yield('content')
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-gray-100 text-gray-900 border-t border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 py-12">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+    <footer class="border-t border-slate-800 bg-slate-950 text-slate-400">
+        <div class="pn-container py-14">
+            <div class="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
                 <div>
-                    <div class="flex items-center mb-4">
-                        <img src="{{ asset('logo-dpe.svg') }}" alt="Logo Dante Pine" class="h-10 w-10 mr-3">
-                        <div>
-                            <p class="text-sm uppercase tracking-widest text-green-700">Dante Pine</p>
-                            <p class="text-xl font-bold">Enrekang</p>
-                        </div>
+                    <div class="flex items-center gap-3">
+                        <img src="{{ asset('assets-beranda/logo.jpg') }}" alt="" class="h-10 w-10 rounded-xl object-cover select-none">
+                        <span class="pn-brand">Dante<span class="pn-brand-pine">Pine</span></span>
+                        <span class="h-4 w-px bg-white/15" aria-hidden="true"></span>
+                        <span class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-300">Enrekang</span>
                     </div>
-                    <p class="text-gray-600 text-sm leading-relaxed">Eksplor hutan pinus, aktivitas ekstrem, dan malam hangat di Camping Ground. Semua pengalaman alam terbaik ada di Dante Pine Enrekang.</p>
-                    <div class="flex space-x-4 mt-5 text-2xl text-gray-500">
-                        <a href="#" class="hover:text-green-600"><i class="fab fa-instagram"></i></a>
-                        <a href="#" class="hover:text-green-600"><i class="fab fa-facebook"></i></a>
-                        <a href="#" class="hover:text-green-600"><i class="fab fa-youtube"></i></a>
-                        <a href="#" class="hover:text-green-600"><i class="fab fa-tiktok"></i></a>
+                    <p class="mt-5 text-sm leading-relaxed text-slate-400">
+                        Kawasan wisata alam terpadu di jalur Poros Enrekang - Tana Toraja. Hutan pinus, kabut pagi, dan
+                        panorama pegunungan untuk pengalaman liburan yang aman dan berkesan.
+                    </p>
+                    <div class="mt-6 flex gap-3 text-lg">
+                        <a href="#" aria-label="Instagram" class="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-slate-300 transition hover:bg-emerald-500 hover:text-white"><i class="fab fa-instagram"></i></a>
+                        <a href="#" aria-label="Facebook" class="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-slate-300 transition hover:bg-emerald-500 hover:text-white"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" aria-label="YouTube" class="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-slate-300 transition hover:bg-emerald-500 hover:text-white"><i class="fab fa-youtube"></i></a>
+                        <a href="#" aria-label="TikTok" class="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-slate-300 transition hover:bg-emerald-500 hover:text-white"><i class="fab fa-tiktok"></i></a>
                     </div>
                 </div>
 
                 <div>
-                    <h3 class="text-lg font-semibold mb-4">Navigasi</h3>
-                    <ul class="space-y-2 text-gray-600 text-sm">
-                        <li><a href="{{ route('home') }}" class="hover:text-green-700 transition">Beranda</a></li>
-                        <li><a href="{{ $homeAnchor('tentang-kami') }}" class="hover:text-green-700 transition">Tentang Kami</a></li>
-                        <li><a href="{{ route('activities.index') }}" class="hover:text-green-700 transition">Aktivitas & Wahana</a></li>
-                        <li><a href="{{ route('menu.index') }}" class="hover:text-green-700 transition">Kafe & Menu</a></li>
-                        <li><a href="{{ $homeAnchor('galeri') }}" class="hover:text-green-700 transition">Galeri</a></li>
-                        <li><a href="{{ $homeAnchor('berita') }}" class="hover:text-green-700 transition">Promo & Event</a></li>
-                        <li><a href="{{ $homeAnchor('kontak') }}" class="hover:text-green-700 transition">Kontak</a></li>
-                        <li><a href="{{ route('booking.form') }}" class="hover:text-green-700 transition">Booking Sekarang</a></li>
+                    <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-white">Jelajahi</h3>
+                    <ul class="mt-5 space-y-3 text-sm">
+                        <li><a href="{{ route('home') }}" class="transition hover:text-emerald-400">Beranda</a></li>
+                        <li><a href="{{ $homeAnchor($primaryAboutAnchor) }}" class="transition hover:text-emerald-400">Tentang Kami</a></li>
+                        <li><a href="{{ route('activities.index') }}" class="transition hover:text-emerald-400">Aktivitas & Wahana</a></li>
+                        <li><a href="{{ route('menu.index') }}" class="transition hover:text-emerald-400">Kafe & Menu</a></li>
+                        <li><a href="{{ $homeAnchor('spot-foto') }}" class="transition hover:text-emerald-400">Spot Foto</a></li>
+                        <li><a href="{{ route('events.index') }}" class="transition hover:text-emerald-400">Promo & Event</a></li>
+                        <li><a href="{{ route('contact.form') }}" class="transition hover:text-emerald-400">Hubungi Kami</a></li>
                     </ul>
                 </div>
 
                 <div>
-                    <h3 class="text-lg font-semibold mb-4">Informasi Pengunjung</h3>
-                    <ul class="space-y-3 text-gray-600 text-sm">
+                    <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-white">Informasi Pengunjung</h3>
+                    <ul class="mt-5 space-y-4 text-sm">
                         <li>
-                            <p class="font-semibold">Jam Operasional</p>
+                            <p class="font-semibold text-slate-200">Jam Operasional</p>
                             <p>Senin - Minggu | 08.00 - 22.00 WITA</p>
                         </li>
                         <li>
-                            <p class="font-semibold">Lokasi</p>
+                            <p class="font-semibold text-slate-200">Lokasi</p>
                             <p>Jalur Poros Enrekang - Tana Toraja</p>
                         </li>
                         <li>
-                            <p class="font-semibold">Hotline & Reservasi</p>
+                            <p class="font-semibold text-slate-200">Hotline & Reservasi</p>
                             <p>+62 852-0000-0000</p>
                         </li>
                     </ul>
                 </div>
 
                 <div>
-                    <h3 class="text-lg font-semibold mb-4">Butuh Bantuan?</h3>
-                    <p class="text-gray-600 text-sm mb-4">Tim kami siap membantu itinerary, paket grup, hingga penyewaan perlengkapan camping.</p>
-                    <a href="{{ route('booking.form') }}" class="inline-flex items-center justify-center w-full bg-green-600 hover:bg-green-700 transition text-white font-semibold py-3 rounded-xl shadow-lg">
-                        <i class="fas fa-comments mr-2"></i> Konsultasi & Booking
+                    <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-white">Rencanakan Kunjungan</h3>
+                    <p class="mt-5 text-sm leading-relaxed">Tim kami siap membantu itinerary, paket grup, hingga penyewaan perlengkapan camping.</p>
+                    <a href="{{ route('booking.form') }}" class="pn-btn pn-btn-primary mt-5 w-full">
+                        <i class="fas fa-calendar-check"></i> Booking Sekarang
                     </a>
-                    <div class="mt-4 text-sm text-gray-500 space-y-1">
-                        <p><i class="fas fa-envelope mr-2"></i>info@dantepineenrekang.com</p>
-                        <p><i class="fas fa-phone mr-2"></i>0821-4567-1234</p>
+                    <div class="mt-5 space-y-2 text-sm">
+                        <p><i class="fas fa-envelope mr-2 text-emerald-400"></i>info@dantepineenrekang.com</p>
+                        <p><i class="fas fa-phone mr-2 text-emerald-400"></i>0821-4567-1234</p>
                     </div>
                 </div>
             </div>
 
-            <div class="border-t border-gray-200 mt-10 pt-6 flex flex-col md:flex-row items-center justify-between text-sm text-gray-500">
+            <div class="mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 text-sm md:flex-row">
                 <p>&copy; {{ date('Y') }} Dante Pine Enrekang. Semua hak cipta dilindungi.</p>
-                <div class="flex space-x-4 mt-3 md:mt-0">
-                    <a href="#" class="hover:text-gray-800">Kebijakan Privasi</a>
-                    <span class="text-gray-300">|</span>
-                    <a href="#" class="hover:text-gray-800">Syarat & Ketentuan</a>
+                <div class="flex flex-wrap items-center gap-4">
+                    <a href="{{ route('login') }}"
+                        class="inline-flex items-center gap-1.5 transition hover:text-emerald-400">
+                        <i class="fas fa-lock text-[10px]" aria-hidden="true"></i> Masuk Admin
+                    </a>
+                    <span class="text-slate-700">|</span>
+                    <a href="#" class="transition hover:text-emerald-400">Kebijakan Privasi</a>
+                    <span class="text-slate-700">|</span>
+                    <a href="#" class="transition hover:text-emerald-400">Syarat &amp; Ketentuan</a>
                 </div>
             </div>
         </div>
     </footer>
 
     <script>
-        // Mobile menu toggle
-        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-        const mobileMenu = document.getElementById('mobile-menu');
-        mobileMenuBtn.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-        });
+        // Mobile menu
+        (function () {
+            const btn = document.getElementById('pn-mobile-btn');
+            const menu = document.getElementById('pn-mobile-menu');
+            const icon = btn ? btn.querySelector('i') : null;
+            if (!btn || !menu) return;
 
-        document.querySelectorAll('#mobile-menu a').forEach(link => {
-            link.addEventListener('click', () => mobileMenu.classList.add('hidden'));
-        });
+            const setOpen = (open) => {
+                menu.classList.toggle('hidden', !open);
+                btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                if (icon) icon.className = open ? 'fas fa-xmark text-xl' : 'fas fa-bars text-xl';
+            };
 
-        // Toggle activities sublist
-        const mobileActivitiesBtn = document.getElementById('mobile-activities-btn');
-        const mobileActivitiesList = document.getElementById('mobile-activities-list');
-        const mobileActivitiesIcon = document.getElementById('mobile-activities-icon');
-        if (mobileActivitiesBtn && mobileActivitiesList) {
-            mobileActivitiesBtn.addEventListener('click', () => {
-                mobileActivitiesList.classList.toggle('hidden');
-                mobileActivitiesIcon.classList.toggle('transform');
-                mobileActivitiesIcon.classList.toggle('rotate-180');
+            btn.addEventListener('click', () => setOpen(menu.classList.contains('hidden')));
+
+            menu.querySelectorAll('a').forEach((link) => {
+                link.addEventListener('click', () => setOpen(false));
             });
-        }
 
-        // Close mobile menu when clicking on any sublink (including activities)
-        document.querySelectorAll('#mobile-menu .mobile-sublink').forEach(link => {
-            link.addEventListener('click', () => mobileMenu.classList.add('hidden'));
-        });
+            menu.querySelectorAll('details').forEach((details) => {
+                details.addEventListener('toggle', () => {
+                    if (!details.open) return;
+                    menu.querySelectorAll('details').forEach((other) => {
+                        if (other !== details) other.open = false;
+                    });
+                });
+            });
+        })();
 
+        // Scroll-aware nav (home hero overlay)
+        (function () {
+            const nav = document.getElementById('pn-nav');
+            const sentinel = document.getElementById('pn-sentinel');
+            if (!nav || !sentinel || !('IntersectionObserver' in window)) return;
+
+            const observer = new IntersectionObserver(
+                ([entry]) => {
+                    nav.classList.toggle('is-scrolled', !entry.isIntersecting);
+                },
+                { rootMargin: '-72px 0px 0px 0px', threshold: 0 }
+            );
+
+            observer.observe(sentinel);
+        })();
+
+        // Scroll reveals
+        (function () {
+            const items = document.querySelectorAll('.pn-reveal');
+            if (!items.length) return;
+
+            if (!('IntersectionObserver' in window)) {
+                document.documentElement.classList.remove('js');
+                return;
+            }
+
+            const io = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    entry.target.classList.add('is-visible');
+                    io.unobserve(entry.target);
+                });
+            }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+
+            document.querySelectorAll('.pn-reveal').forEach((el) => io.observe(el));
+        })();
+
+        // Animated counters
+        (function () {
+            const counters = document.querySelectorAll('[data-pn-count]');
+            if (!counters.length) return;
+
+            const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            const run = (el) => {
+                const target = parseFloat(el.dataset.pnCount) || 0;
+                const suffix = el.dataset.pnSuffix || '';
+                const duration = 1400;
+
+                if (reduce) {
+                    el.textContent = target.toLocaleString('id-ID') + suffix;
+                    return;
+                }
+
+                const start = performance.now();
+                const step = (now) => {
+                    const progress = Math.min((now - start) / duration, 1);
+                    const eased = 1 - Math.pow(1 - progress, 3);
+                    el.textContent = Math.round(target * eased).toLocaleString('id-ID') + suffix;
+                    if (progress < 1) requestAnimationFrame(step);
+                };
+                requestAnimationFrame(step);
+            };
+
+            if (!('IntersectionObserver' in window)) {
+                counters.forEach(run);
+                return;
+            }
+
+            const io = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    run(entry.target);
+                    io.unobserve(entry.target);
+                });
+            }, { threshold: 0.4 });
+
+            counters.forEach((el) => io.observe(el));
+        })();
+
+        // Back to top
+        (function () {
+            const btn = document.getElementById('pn-totop');
+            if (!btn) return;
+
+            const toggle = () => btn.classList.toggle('is-visible', window.scrollY > 480);
+            toggle();
+            window.addEventListener('scroll', toggle, { passive: true });
+
+            btn.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        })();
     </script>
 </body>
 

@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             EventSeeder::class,
             GeneralFacilityInfoSeeder::class,
             CampingPackageSeeder::class,
+            TestimonialSeeder::class,
         ]);
     }
 }

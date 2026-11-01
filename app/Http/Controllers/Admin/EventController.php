@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
-use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
 
 class EventController extends Controller
 {
@@ -36,7 +36,7 @@ class EventController extends Controller
 
     public function create(): View
     {
-        return view('admin.events.create', ['event' => new Event()]);
+        return view('admin.events.create', ['event' => new Event]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -117,7 +117,7 @@ class EventController extends Controller
     {
         $uniqueSlug = 'unique:events,slug';
         if ($ignoreId) {
-            $uniqueSlug .= ',' . $ignoreId;
+            $uniqueSlug .= ','.$ignoreId;
         }
 
         return $request->validate([
@@ -146,7 +146,7 @@ class EventController extends Controller
                 ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
                 ->exists()
         ) {
-            $slug = $base . '-' . $counter;
+            $slug = $base.'-'.$counter;
             $counter++;
         }
 

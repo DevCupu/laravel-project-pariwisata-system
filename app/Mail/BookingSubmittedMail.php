@@ -11,14 +11,12 @@ class BookingSubmittedMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public Booking $booking)
-    {
-    }
+    public function __construct(public Booking $booking) {}
 
     public function build(): self
     {
         return $this
-            ->subject('Permintaan Booking ' . $this->booking->booking_code . ' diterima')
+            ->subject('Permintaan Booking '.$this->booking->booking_code.' diterima')
             ->view('emails.booking.submitted')
             ->with(['booking' => $this->booking]);
     }

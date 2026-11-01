@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\MenuItem;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class MenuItemController extends Controller
@@ -51,7 +51,7 @@ class MenuItemController extends Controller
     public function create(): View
     {
         return view('admin.menu-items.create', [
-            'menuItem' => new MenuItem(),
+            'menuItem' => new MenuItem,
             'sectionOptions' => $this->sectionOptions(),
             'typeOptions' => $this->typeOptions(),
         ]);
@@ -139,7 +139,7 @@ class MenuItemController extends Controller
     {
         $uniqueSlugRule = 'unique:menu_items,slug';
         if ($ignoreId) {
-            $uniqueSlugRule .= ',' . $ignoreId;
+            $uniqueSlugRule .= ','.$ignoreId;
         }
 
         return $request->validate([
@@ -170,7 +170,7 @@ class MenuItemController extends Controller
 
     private function ensureSlug(array $payload, ?int $ignoreId = null): array
     {
-        $base = Str::slug($payload['slug'] ?: $payload['name']) ?: 'menu-item';
+        $base = Str::slug(($payload['slug'] ?? null) ?: $payload['name']) ?: 'menu-item';
         $slug = $base;
         $counter = 1;
 
@@ -179,7 +179,7 @@ class MenuItemController extends Controller
                 ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
                 ->exists()
         ) {
-            $slug = $base . '-' . $counter;
+            $slug = $base.'-'.$counter;
             $counter++;
         }
 
