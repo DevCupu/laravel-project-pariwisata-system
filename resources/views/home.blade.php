@@ -4,7 +4,7 @@
 @section('main-class', 'pt-16')
 
 @push('preload')
-    <link rel="preload" as="image" href="{{ asset('assets-beranda/hero-1.jpg') }}" fetchpriority="high">
+    <link rel="preload" as="image" href="{{ asset('assets-beranda/dante-pine-gateway.webp') }}" fetchpriority="high">
 @endpush
 
 @push('head')
@@ -21,7 +21,7 @@
                 "addressCountry": "ID"
             },
             "openingHours": "Mo-Su 08:00-22:00",
-            "image": "{{ asset('assets-beranda/hero-1.jpg') }}",
+            "image": "{{ asset('assets-beranda/dante-pine-gateway.webp') }}",
             "url": "{{ route('home') }}"
         }
     </script>
@@ -30,12 +30,12 @@
 @section('content')
 
     {{-- Hero --}}
-    <section class="relative flex min-h-[calc(100dvh-4rem)] items-center justify-center overflow-hidden"
+    <section class="relative flex min-h-[calc(100dvh-4rem)] items-center overflow-hidden"
         x-data="{
             slides: [
-                { src: '{{ asset('assets-beranda/hero-1.jpg') }}', alt: 'Panorama hutan pinus Dante Pine Enrekang di pagi hari' },
-                { src: '{{ asset('assets-beranda/hero-2.jpg') }}', alt: 'Suasana kawasan wisata Dante Pine Enrekang' },
-                { src: '{{ asset('assets-beranda/hero-3.jpg') }}', alt: 'Pemandangan pegunungan dan jalur Poros Enrekang - Tana Toraja' },
+                { src: '{{ asset('assets-beranda/dante-pine-gateway.webp') }}', alt: 'Pemandangan pintu masuk Dante Pine dengan latar pegunungan Enrekang' },
+                { src: '{{ asset('assets-beranda/dante-pine-cafe.webp') }}', alt: 'Suasana kafe Dante Pine dengan pemandangan lembah Enrekang' },
+                { src: '{{ asset('assets-beranda/dante-pine-viewpoint.webp') }}', alt: 'Area pandang Dante Pine di antara hutan pinus dan pegunungan' },
             ],
             current: 0,
             timer: null,
@@ -55,54 +55,76 @@
                 }
             },
         }" aria-label="Selamat datang di Dante Pine Enrekang">
-        <img :src="slides[0].src" :alt="slides[0].alt" src="{{ asset('assets-beranda/hero-1.jpg') }}"
-            alt="Panorama hutan pinus Dante Pine Enrekang di pagi hari"
-            class="absolute inset-0 h-full w-full object-cover transition-opacity duration-1000"
+        <img :src="slides[0].src" :alt="slides[0].alt" src="{{ asset('assets-beranda/dante-pine-gateway.webp') }}"
+            alt="Pemandangan pintu masuk Dante Pine dengan latar pegunungan Enrekang"
+            class="absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-1000 motion-reduce:transition-none"
             :class="current === 0 ? 'opacity-100' : 'opacity-0'" fetchpriority="high" decoding="async">
         <template x-for="(slide, index) in slides.slice(1)" :key="index">
             <img :src="slide.src" :alt="slide.alt" loading="lazy" decoding="async"
-                class="absolute inset-0 h-full w-full object-cover transition-opacity duration-1000"
+                class="absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-1000 motion-reduce:transition-none"
                 :class="current === index + 1 ? 'opacity-100' : 'opacity-0'">
         </template>
-        <div class="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-950/45 to-slate-950/90"></div>
-        <div class="absolute inset-0 bg-gradient-to-tr from-emerald-950/50 via-transparent to-transparent"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-[#0a1914]/85 via-[#10251c]/55 to-[#10251c]/15"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-[#0a1914]/75 via-transparent to-[#0a1914]/15"></div>
 
-        <div class="pn-container relative z-10 pt-28 pb-24 sm:pt-32">
+        <div class="pn-container relative z-10 grid w-full items-center gap-12 pt-28 pb-32 sm:pt-36 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,.62fr)] lg:gap-20">
             <div class="max-w-3xl">
-                <p class="pn-eyebrow text-emerald-300">
-                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
-                    Kawasan Wisata Alam &middot; Enrekang
+                <p class="inline-flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-200">
+                    <span class="h-px w-8 bg-emerald-300"></span>
+                    Enrekang &middot; Sulawesi Selatan
                 </p>
-                <h1 class="mt-6 text-4xl font-bold leading-[1.05] tracking-tight text-white drop-shadow-sm sm:text-5xl lg:text-6xl">
-                    Hutan pinus, kabut pagi, dan langit Enrekang.
+                <h1 class="mt-6 max-w-3xl font-[Fraunces] text-5xl font-semibold leading-[1.04] tracking-[-0.035em] text-white drop-shadow-sm sm:text-6xl lg:text-7xl">
+                    Jeda sejenak, dekat dengan alam.
                 </h1>
-                <p class="mt-6 max-w-xl text-base leading-relaxed text-slate-200 sm:text-lg">
-                    Destinasi wisata alam terpadu untuk camping, trekking, dan berburu foto di jalur Poros Enrekang - Tana Toraja.
+                <p class="mt-6 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg">
+                    Temukan udara sejuk, hutan pinus, dan panorama pegunungan di Dante Pine, jalur Poros Enrekang–Tana Toraja.
                 </p>
-                <div class="mt-9 flex flex-col gap-3 sm:flex-row">
+                <div class="mt-8 flex flex-col gap-3 sm:flex-row">
                     <a href="{{ route('booking.form') }}" class="pn-btn pn-btn-primary">
-                        <i class="fas fa-calendar-check" aria-hidden="true"></i> Booking Sekarang
+                        <i class="fas fa-calendar-check" aria-hidden="true"></i> Rencanakan kunjungan
                     </a>
                     <a href="{{ route('activities.index') }}" class="pn-btn pn-btn-ghost">
-                        <i class="fas fa-compass" aria-hidden="true"></i> Jelajahi Aktivitas
+                        <i class="fas fa-compass" aria-hidden="true"></i> Jelajahi pengalaman
                     </a>
                 </div>
             </div>
+
+            <aside class="max-w-md rounded-2xl border border-white/15 bg-[#102c24]/90 p-5 text-white shadow-2xl shadow-black/20 sm:p-6 lg:justify-self-end" aria-label="Informasi kunjungan">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">Rencanakan kunjungan</p>
+                <dl class="mt-5 divide-y divide-white/10">
+                    <div class="flex gap-4 py-4 first:pt-0">
+                        <i class="fas fa-location-dot mt-1 w-4 text-emerald-300" aria-hidden="true"></i>
+                        <div>
+                            <dt class="text-xs text-white/60">Lokasi</dt>
+                            <dd class="mt-1 text-sm font-medium leading-relaxed">Poros Enrekang–Tana Toraja</dd>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 py-4">
+                        <i class="fas fa-clock mt-1 w-4 text-emerald-300" aria-hidden="true"></i>
+                        <div>
+                            <dt class="text-xs text-white/60">Jam operasional</dt>
+                            <dd class="mt-1 text-sm font-medium">Setiap hari, 08.00–22.00 WITA</dd>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 pt-4">
+                        <i class="fas fa-tree mt-1 w-4 text-emerald-300" aria-hidden="true"></i>
+                        <div>
+                            <dt class="text-xs text-white/60">Pengalaman</dt>
+                            <dd class="mt-1 text-sm font-medium leading-relaxed">Camping, aktivitas alam, spot foto, dan kafe</dd>
+                        </div>
+                    </div>
+                </dl>
+            </aside>
         </div>
 
-        <div class="absolute bottom-8 right-8 z-10 flex items-center gap-2" role="group" aria-label="Pilih slide hero">
+        <div class="absolute bottom-8 right-6 z-10 flex items-center gap-2 sm:right-10" role="group" aria-label="Pilih foto beranda">
             <template x-for="(slide, index) in slides" :key="index">
                 <button type="button" class="h-2 rounded-full transition-all duration-300"
                     :class="current === index ? 'w-7 bg-white' : 'w-2 bg-white/40 hover:bg-white/70'"
-                    :aria-label="'Slide ' + (index + 1)" :aria-current="current === index ? 'true' : 'false'"
+                    :aria-label="'Foto ' + (index + 1)" :aria-current="current === index ? 'true' : 'false'"
                     @click="go(index)"></button>
             </template>
         </div>
-
-        <a href="#statistik" class="absolute bottom-8 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-2 text-white/70 transition hover:text-white sm:flex" aria-label="Gulir ke bawah">
-            <span class="text-[11px] font-semibold uppercase tracking-[0.3em]">Gulir</span>
-            <i class="fas fa-chevron-down animate-bounce"></i>
-        </a>
     </section>
 
     <div id="pn-sentinel" class="h-px w-full" aria-hidden="true"></div>
@@ -144,7 +166,12 @@
 
                 <div class="mt-16 space-y-16 sm:space-y-24">
                     @foreach ($aboutSections as $index => $section)
-                        @php $reversed = $index % 2 === 1; @endphp
+                        @php
+                            $reversed = $index % 2 === 1;
+                            $fallbackImage = $index === 0
+                                ? asset('assets-beranda/dante-pine-gateway.webp')
+                                : asset('assets-beranda/dante-pine-viewpoint.webp');
+                        @endphp
                         <article id="{{ $section->slug }}"
                             class="scroll-mt-24 grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
                             <div class="{{ $reversed ? 'lg:order-last' : '' }}">
@@ -157,17 +184,11 @@
                                 <p class="mt-4 text-base leading-relaxed text-slate-600">{{ $section->content }}</p>
                             </div>
 
-                            @if ($section->image_path)
-                                <div class="relative overflow-hidden rounded-3xl {{ $reversed ? 'lg:order-first' : '' }}">
-                                    <img src="{{ $section->image_url }}" alt="{{ $section->title }}" loading="lazy" decoding="async"
-                                        class="aspect-[4/3] w-full object-cover">
-                                    <div class="absolute inset-0 rounded-3xl ring-1 ring-inset ring-slate-900/10"></div>
-                                </div>
-                            @else
-                                <div class="flex aspect-[4/3] items-center justify-center rounded-3xl bg-gradient-to-br from-emerald-50 to-slate-100 ring-1 ring-inset ring-slate-900/5">
-                                    <i class="fas fa-leaf text-5xl text-emerald-600/40" aria-hidden="true"></i>
-                                </div>
-                            @endif
+                            <div class="relative overflow-hidden rounded-3xl {{ $reversed ? 'lg:order-first' : '' }}">
+                                <img src="{{ $section->image_path ? $section->image_url : $fallbackImage }}" alt="{{ $section->title }}" loading="lazy" decoding="async"
+                                    class="aspect-[4/3] w-full object-cover">
+                                <div class="absolute inset-0 rounded-3xl ring-1 ring-inset ring-slate-900/10"></div>
+                            </div>
                         </article>
                     @endforeach
                 </div>
