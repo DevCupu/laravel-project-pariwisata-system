@@ -1,0 +1,37 @@
+name: Check Pariwisata SSH Connection
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pariwisata-ssh-check
+  cancel-in-progress: false
+
+jobs:
+  check-connection:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check SSH connection and PHP runtime
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 1m
+          script: |
+            set -e
+            cd /home/izim8295/pariwisata
+            printf 'SSH connection: OK\n'
+            printf 'Server: '
+            hostname
+            printf 'User: '
+            id -un
+            printf 'Project directory: '
+            pwd
+            printf 'PHP 8.5 CLI: '
+            /opt/alt/php85/usr/bin/php -r 'echo PHP_VERSION, PHP_EOL;'
