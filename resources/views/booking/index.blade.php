@@ -6,9 +6,11 @@
 
 @section('content')
     @include('partials.public.page-hero', [
-        'title' => 'Permintaan Kunjungan Dante Pine',
-        'subtitle' => 'Empat langkah singkat: data diri, jadwal, pilih fasilitas, lalu konfirmasi. Tim reservasi kami akan menghubungi Anda via WhatsApp.',
-        'eyebrow' => 'Formulir Reservasi',
+        'title' => session('booking_success') ? 'Permintaan booking diterima' : 'Permintaan Kunjungan Dante Pine',
+        'subtitle' => session('booking_success')
+            ? 'Simpan kode booking Anda, cek statusnya, lalu tunggu konfirmasi dari tim reservasi.'
+            : 'Empat langkah singkat: data diri, jadwal, pilih fasilitas, lalu konfirmasi. Tim reservasi kami akan menghubungi Anda via WhatsApp.',
+        'eyebrow' => session('booking_success') ? 'Menunggu Konfirmasi' : 'Formulir Reservasi',
         'breadcrumb' => [['label' => 'Booking']],
     ])
 
@@ -65,28 +67,117 @@
     <section class="pn-section pn-section--tint">
         <div class="pn-container">
             @if (session('booking_success'))
-                <div class="mb-8 rounded-3xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-950 shadow-sm sm:p-8">
-                    <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                        <div class="space-y-2">
-                            <span class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-emerald-600 text-white">
+                <section aria-labelledby="booking-success-title" class="mx-auto max-w-4xl overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-lg shadow-emerald-950/5">
+                    <div class="border-b border-emerald-100 bg-emerald-50/80 px-6 py-7 sm:px-9 sm:py-8">
+                        <div class="flex items-start gap-4">
+                            <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-xl text-white shadow-sm">
                                 <i class="fas fa-check" aria-hidden="true"></i>
                             </span>
-                            <p class="mt-3 text-lg font-bold">{{ session('booking_success') }}</p>
-                            @if (session('booking_code'))
-                                <p class="text-sm">Kode booking Anda:
-                                    <span class="rounded-lg bg-white px-2.5 py-1 font-bold tracking-widest text-emerald-700 shadow-sm">{{ session('booking_code') }}</span>
+                            <div>
+                                <span class="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
+                                    <i class="fas fa-clock" aria-hidden="true"></i> Menunggu konfirmasi admin
+                                </span>
+                                <h2 id="booking-success-title" class="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                                    Permintaan booking berhasil dikirim
+                                </h2>
+                                <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
+                                    Permintaan Anda sudah tercatat, tetapi booking belum final sampai dikonfirmasi admin. Tim reservasi akan menghubungi Anda melalui WhatsApp atau email maksimal 1x24 jam.
                                 </p>
-                            @endif
-                            <p class="text-sm text-emerald-800/80">Simpan kode tersebut sebagai referensi ketika tim admin menghubungi Anda.</p>
+                            </div>
                         </div>
-                        <div class="flex shrink-0 flex-col gap-3">
-                            <a href="{{ route('booking.status') }}" class="pn-btn pn-btn-primary">
-                                <i class="fas fa-magnifying-glass" aria-hidden="true"></i> Cek Status Booking
+                    </div>
+
+                    <div class="space-y-7 px-6 py-7 sm:px-9 sm:py-8">
+                        @if (session('booking_code'))
+                            <div x-data="{
+                                copied: false,
+                                copyFailed: false,
+                                async copyBookingCode() {
+                                    const code = this.$refs.bookingCode.textContent.trim();
+                                    this.copyFailed = false;
+
+                                    try {
+                                        await navigator.clipboard.writeText(code);
+                                        this.copied = true;
+                                    } catch (error) {
+                                        const helper = document.createElement('textarea');
+                                        helper.value = code;
+                                        helper.setAttribute('readonly', '');
+                                        helper.style.position = 'fixed';
+                                        helper.style.opacity = '0';
+                                        document.body.appendChild(helper);
+                                        helper.select();
+                                        this.copied = document.execCommand('copy');
+                                        helper.remove();
+                                        this.copyFailed = !this.copied;
+                                    }
+
+                                    if (this.copied) {
+                                        window.setTimeout(() => this.copied = false, 2200);
+                                    }
+                                }
+                            }" class="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:flex sm:items-center sm:justify-between sm:gap-6">
+                                <div>
+                                    <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Kode booking Anda</p>
+                                    <p x-ref="bookingCode" class="mt-2 font-mono text-2xl font-bold tracking-[0.18em] text-slate-900 sm:text-3xl">
+                                        {{ session('booking_code') }}
+                                    </p>
+                                    <p class="mt-2 text-sm text-slate-600">Simpan kode ini untuk melihat status atau menghubungi admin.</p>
+                                </div>
+                                <div class="mt-4 sm:mt-0 sm:shrink-0">
+                                    <button type="button" x-on:click="copyBookingCode()"
+                                        class="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-700 bg-white px-4 py-2.5 text-sm font-bold text-emerald-800 transition hover:bg-emerald-50 focus:outline-none focus:ring-4 focus:ring-emerald-100 sm:w-auto">
+                                        <i class="fas fa-copy" aria-hidden="true"></i>
+                                        <span x-text="copied ? 'Kode tersalin' : 'Salin kode'"></span>
+                                    </button>
+                                    <p role="status" aria-live="polite" class="mt-2 text-xs text-slate-500"
+                                        x-text="copyFailed ? 'Tidak bisa menyalin otomatis. Silakan salin kode secara manual.' : (copied ? 'Kode booking berhasil disalin.' : '')"></p>
+                                </div>
+                            </div>
+                        @endif
+
+                        <ol class="grid gap-4 sm:grid-cols-3" aria-label="Langkah setelah booking">
+                            <li class="flex gap-3 rounded-2xl border border-slate-100 p-4">
+                                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-800">1</span>
+                                <div>
+                                    <p class="font-bold text-slate-900">Simpan kode</p>
+                                    <p class="mt-1 text-sm leading-relaxed text-slate-600">Gunakan kode booking untuk mengecek perkembangan permintaan Anda.</p>
+                                </div>
+                            </li>
+                            <li class="flex gap-3 rounded-2xl border border-slate-100 p-4">
+                                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-800">2</span>
+                                <div>
+                                    <p class="font-bold text-slate-900">Cek status</p>
+                                    <p class="mt-1 text-sm leading-relaxed text-slate-600">Status berubah setelah admin meninjau ketersediaan fasilitas.</p>
+                                </div>
+                            </li>
+                            <li class="flex gap-3 rounded-2xl border border-slate-100 p-4">
+                                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-800">3</span>
+                                <div>
+                                    <p class="font-bold text-slate-900">Tunggu konfirmasi</p>
+                                    <p class="mt-1 text-sm leading-relaxed text-slate-600">Admin menghubungi Anda melalui WhatsApp atau email maksimal 1x24 jam.</p>
+                                </div>
+                            </li>
+                        </ol>
+
+                        <div class="flex items-start gap-3 rounded-2xl bg-amber-50 px-4 py-3.5 text-sm text-amber-950">
+                            <i class="fas fa-envelope-open-text mt-0.5 text-amber-700" aria-hidden="true"></i>
+                            <p>Jika konfirmasi email belum terlihat di Inbox, periksa juga folder <strong>Spam</strong> atau <strong>Promosi</strong>.</p>
+                        </div>
+
+                        <div class="flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row">
+                            <a href="{{ route('booking.status', session('booking_code') ? ['booking_code' => session('booking_code')] : []) }}"
+                                class="pn-btn pn-btn-primary justify-center">
+                                <i class="fas fa-magnifying-glass" aria-hidden="true"></i> Lihat status booking
+                            </a>
+                            <a href="{{ route('booking.form') }}"
+                                class="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
+                                Buat booking lain
                             </a>
                         </div>
                     </div>
-                </div>
-            @endif
+                </section>
+            @else
 
             @if ($errors->any())
                 <div class="mb-6 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-rose-700 shadow-sm">
@@ -639,9 +730,11 @@
                     Fasilitas belum tersedia. Silakan hubungi admin sebelum mengirim permintaan booking.
                 </div>
             @endif
+            @endif
         </div>
     </section>
 
+    @if (! session('booking_success'))
     <script>
         function bookingWizard(options = {}) {
             return {
@@ -1127,4 +1220,5 @@
             initCustomSelects();
         });
     </script>
+    @endif
 @endsection

@@ -368,6 +368,6 @@ class BookingController extends Controller
     private function emailFailureMessage(Booking $booking): string
     {
         return 'Status booking '.$booking->booking_code.' tersimpan, tetapi email konfirmasi ke '
-            .$booking->email.' gagal dikirim. Periksa konfigurasi email di menu pengaturan server.';
+            .$booking->email.' gagal dimasukkan ke antrean. Periksa konfigurasi queue dan email di server.';
     }
 }

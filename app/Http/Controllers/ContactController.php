@@ -30,10 +30,13 @@ class ContactController extends Controller
             Mail::to(config('mail.from.address'))
                 ->send(new ContactFormSubmitted($data));
         } catch (\Throwable $e) {
-            // If mail fails, continue and show friendly message
             Log::error('Contact form mail failed: '.$e->getMessage());
+
+            return back()
+                ->withInput($data)
+                ->with('error', 'Pesan belum berhasil dikirim. Silakan coba lagi atau hubungi kami melalui WhatsApp.');
         }
 
-        return back()->with('success', 'Pesan Anda telah terkirim. Kami akan menghubungi Anda segera.');
+        return back()->with('success', 'Pesan Anda sudah masuk ke antrean dan akan segera diproses.');
     }
 }

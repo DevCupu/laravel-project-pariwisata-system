@@ -101,9 +101,9 @@
                                 'completed' => 'bg-slate-100 text-slate-800',
                             ];
                             $statusLabels = [
-                                'pending' => 'Pending',
-                                'confirmed' => 'Confirmed',
-                                'cancelled' => 'Cancelled',
+                                'pending' => 'Menunggu konfirmasi',
+                                'confirmed' => 'Dikonfirmasi',
+                                'cancelled' => 'Dibatalkan',
                                 'completed' => 'Selesai',
                             ];
                             $currentAppearance = $statusAppearances[$booking->status] ?? $statusAppearances['pending'];
@@ -132,9 +132,9 @@
                                             </p>
                                             <p class="text-sm leading-relaxed">
                                                 @if ($booking->status === 'pending')
-                                                    Permintaan Anda sedang ditinjau oleh tim admin. Mohon tunggu maksimal 1x24 jam.
+                                                    Permintaan Anda sedang ditinjau admin dan belum terkonfirmasi. Mohon tunggu maksimal 1x24 jam; admin akan menghubungi Anda melalui WhatsApp atau email.
                                                 @elseif ($booking->status === 'confirmed')
-                                                    Booking dikonfirmasi! Tim kami akan segera menghubungi melalui WhatsApp atau email untuk detail lanjutan.
+                                                    Booking Anda sudah dikonfirmasi. Silakan periksa WhatsApp atau email untuk informasi dan langkah selanjutnya.
                                                 @elseif ($booking->status === 'completed')
                                                     Reservasi Anda sudah selesai dan slot telah digunakan. Terima kasih telah berkunjung, semoga pengalaman Anda menyenangkan!
                                                 @else

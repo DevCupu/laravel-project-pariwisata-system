@@ -25,6 +25,12 @@
                             </div>
                         @endif
 
+                        @if (session('error'))
+                            <div class="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800" role="alert">
+                                {{ session('error') }}
+                            </div>
+                        @endif
+
                         <form action="{{ route('contact.store') }}" method="POST" class="mt-6 space-y-5">
                             @csrf
 
