@@ -1,0 +1,119 @@
+name: Deploy Pariwisata
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-pariwisata
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build Vite assets
+        run: npm run build
+
+      - name: Update source and install PHP dependencies
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /home/izim8295/pariwisata
+            PHP_BIN=/opt/alt/php85/usr/bin/php
+            COMPOSER_BIN=/home/izim8295/bin/composer
+            test -x "$PHP_BIN"
+            test -f "$COMPOSER_BIN"
+            "$PHP_BIN" -r 'exit(PHP_VERSION_ID >= 80500 && PHP_VERSION_ID < 80600 ? 0 : 1);'
+            test -f .env
+            test "$(git rev-parse --show-toplevel)" = "/home/izim8295/pariwisata"
+            test "$(git remote get-url origin)" = "https://github.com/DevCupu/laravel-project-pariwisata-system.git"
+            grep -qx 'APP_ENV=production' .env
+            grep -qx 'APP_DEBUG=false' .env
+            grep -qx 'APP_URL=https://dantepine.site' .env
+            grep -qx 'SESSION_DRIVER=file' .env
+            grep -q '^DB_PASSWORD=.' .env
+            test "$(readlink -f /home/izim8295/public_html/dantepine.site)" = "/home/izim8295/pariwisata/public"
+
+            git fetch origin main
+            git reset --hard origin/main
+
+            "$PHP_BIN" -d disable_functions=none "$COMPOSER_BIN" install \
+              --no-dev \
+              --optimize-autoloader \
+              --no-interaction \
+              --prefer-dist
+
+            if ! grep -q '^APP_KEY=.' .env; then
+              "$PHP_BIN" artisan key:generate --force
+            fi
+            grep -q '^APP_KEY=.' .env
+
+      - name: Upload Vite build
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "public/build"
+          target: "/home/izim8295/pariwisata/public"
+          strip_components: 1
+          overwrite: true
+
+      - name: Run Laravel deployment tasks
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /home/izim8295/pariwisata
+            PHP_BIN=/opt/alt/php85/usr/bin/php
+            "$PHP_BIN" -r 'exit(PHP_VERSION_ID >= 80500 && PHP_VERSION_ID < 80600 ? 0 : 1);'
+
+            test -f public/build/manifest.json
+
+            STORAGE_TARGET=/home/izim8295/pariwisata/storage/app/public
+            mkdir -p "$STORAGE_TARGET"
+            if [ -L public/storage ]; then
+              test "$(readlink -f public/storage)" = "$(readlink -f "$STORAGE_TARGET")"
+            elif [ -e public/storage ]; then
+              echo "Refusing to replace existing non-symlink path: public/storage" >&2
+              exit 1
+            else
+              ln -s ../storage/app/public public/storage
+            fi
+
+            trap '"$PHP_BIN" artisan up || true' EXIT
+            "$PHP_BIN" artisan down
+            "$PHP_BIN" artisan migrate --force
+            "$PHP_BIN" artisan optimize:clear
+            "$PHP_BIN" artisan optimize
+            "$PHP_BIN" artisan up
+            trap - EXIT
