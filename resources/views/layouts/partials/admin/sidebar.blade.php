@@ -30,6 +30,9 @@
                 ['label' => 'Menu & Café', 'route' => 'admin.menu-items.index', 'active' => 'admin.menu-items.*', 'icon' => 'fa-mug-hot'],
                 ['label' => 'Kontak', 'url' => '#kontak', 'icon' => 'fa-phone'],
             ]],
+            ['title' => 'Bantuan', 'items' => [
+                ['label' => 'Panduan Penggunaan', 'route' => 'admin.guide', 'active' => 'admin.guide', 'icon' => 'fa-circle-question'],
+            ]],
         ];
     @endphp
 

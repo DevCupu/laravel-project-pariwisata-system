@@ -46,6 +46,7 @@ Route::middleware(['auth', IsAdmin::class])
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::view('/panduan', 'admin.guide.index')->name('guide');
         Route::get('/bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
         Route::get('/bookings/create', [AdminBookingController::class, 'create'])->name('bookings.create');
         Route::post('/bookings', [AdminBookingController::class, 'store'])->name('bookings.store');

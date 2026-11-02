@@ -24,11 +24,11 @@
     <div class="flex h-screen relative">
         @include('layouts.partials.admin.sidebar')
 
-        <div class="flex-1 flex flex-col overflow-hidden w-full lg:w-auto">
+        <div class="min-w-0 flex-1 flex flex-col overflow-hidden w-full lg:w-auto">
             @include('layouts.partials.admin.header')
 
-            <main class="admin-scroll flex-1 overflow-x-hidden overflow-y-auto bg-base-200 p-4 pb-24 lg:p-6 lg:pb-6">
-                <div class="mx-auto w-full max-w-7xl space-y-5">
+            <main class="admin-scroll min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-base-200 p-4 pb-24 lg:p-6 lg:pb-6">
+                <div class="mx-auto min-w-0 w-full max-w-7xl space-y-5">
                     @if (session('admin_success'))
                         <div class="admin-animate-fade alert alert-success shadow-sm" role="status">
                             <i class="fas fa-circle-check"></i>
