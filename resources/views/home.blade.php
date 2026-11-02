@@ -10,7 +10,7 @@
 @push('head')
     <script type="application/ld+json">
         {
-            "@context": "https://schema.org",
+            "@@context": "https://schema.org",
             "@type": "TouristAttraction",
             "name": "Dante Pine Enrekang",
             "description": "Kawasan wisata alam terpadu dengan hutan pinus, camping, aktivitas outdoor, dan kafe di jalur Poros Enrekang - Tana Toraja.",
