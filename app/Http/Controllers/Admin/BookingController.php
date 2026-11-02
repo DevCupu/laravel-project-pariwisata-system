@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\Facility;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -270,6 +271,89 @@ class BookingController extends Controller
         return redirect()
             ->route('admin.bookings.index', $redirectQuery)
             ->with('admin_success', 'Booking '.$bookingCode.' berhasil dihapus.');
+    }
+
+    public function bulk(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'action' => ['required', Rule::in(['status', 'delete'])],
+            'booking_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'booking_ids.*' => ['required', 'integer', 'distinct', Rule::exists('bookings', 'id')],
+            'status' => ['nullable', 'required_if:action,status', Rule::in(array_keys($this->statusOptions()))],
+        ]);
+
+        $bookingIds = array_map('intval', $validated['booking_ids']);
+        $redirectQuery = array_filter([
+            'q' => $request->input('q'),
+            'status' => $request->input('status_filter'),
+            'from' => $request->input('from'),
+            'to' => $request->input('to'),
+            'sort' => $request->input('sort'),
+        ], fn ($value) => filled($value));
+
+        if ($validated['action'] === 'delete') {
+            $deletedCount = DB::transaction(
+                fn () => Booking::query()->whereKey($bookingIds)->delete()
+            );
+
+            return redirect()
+                ->route('admin.bookings.index', $redirectQuery)
+                ->with('admin_success', $deletedCount.' booking berhasil dihapus.');
+        }
+
+        $targetStatus = $validated['status'];
+        $newlyConfirmed = collect();
+        $updatedCount = DB::transaction(function () use ($bookingIds, $targetStatus, $newlyConfirmed) {
+            $bookings = Booking::query()
+                ->with(['facility', 'menuItems'])
+                ->whereKey($bookingIds)
+                ->lockForUpdate()
+                ->get();
+
+            $updated = 0;
+
+            foreach ($bookings as $booking) {
+                if ($booking->status === $targetStatus) {
+                    continue;
+                }
+
+                $wasConfirmed = $booking->status === 'confirmed';
+                $booking->update(['status' => $targetStatus]);
+                $updated++;
+
+                if (! $wasConfirmed && $targetStatus === 'confirmed') {
+                    $newlyConfirmed->push($booking);
+                }
+            }
+
+            return $updated;
+        });
+
+        $emailFailures = 0;
+
+        foreach ($newlyConfirmed as $booking) {
+            if (! $this->sendConfirmationEmail($booking)) {
+                $emailFailures++;
+            }
+        }
+
+        $statusLabel = $this->statusOptions()[$targetStatus] ?? ucfirst($targetStatus);
+        $successMessage = $updatedCount > 0
+            ? 'Status '.$updatedCount.' booking berhasil diubah menjadi '.$statusLabel.'.'
+            : 'Tidak ada perubahan. Semua booking yang dipilih sudah berstatus '.$statusLabel.'.';
+
+        $redirect = redirect()
+            ->route('admin.bookings.index', $redirectQuery)
+            ->with('admin_success', $successMessage);
+
+        if ($emailFailures > 0) {
+            $redirect->with(
+                'admin_error',
+                'Status tersimpan, tetapi email konfirmasi gagal dimasukkan ke antrean untuk '.$emailFailures.' booking. Periksa konfigurasi email dan queue.'
+            );
+        }
+
+        return $redirect;
     }
 
     private function statusOptions(): array

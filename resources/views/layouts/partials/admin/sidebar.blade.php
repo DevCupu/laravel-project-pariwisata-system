@@ -1,7 +1,7 @@
 <div id="sidebar"
     class="fixed lg:relative inset-y-0 left-0 z-50 flex w-64 min-h-screen flex-col border-r border-base-300 bg-base-100 -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-out">
     <div class="flex items-center gap-3 border-b border-base-300 px-5 py-4">
-        <img src="{{ asset('logo-dpe.svg') }}" alt="Dante Pine Enrekang" class="h-9 w-auto flex-shrink-0">
+        <img src="{{ asset('assets-beranda/logo.jpg') }}" alt="" class="h-9 w-9 flex-shrink-0 rounded-xl object-cover">
         <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-bold tracking-tight">Dante Pine Enrekang</p>
             <p class="text-[10px] font-semibold uppercase tracking-wider text-base-content/50">Admin Panel</p>

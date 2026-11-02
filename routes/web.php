@@ -49,6 +49,7 @@ Route::middleware(['auth', IsAdmin::class])
         Route::get('/bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
         Route::get('/bookings/create', [AdminBookingController::class, 'create'])->name('bookings.create');
         Route::post('/bookings', [AdminBookingController::class, 'store'])->name('bookings.store');
+        Route::post('/bookings/bulk', [AdminBookingController::class, 'bulk'])->name('bookings.bulk');
         Route::get('/bookings/{booking}/edit', [AdminBookingController::class, 'edit'])->name('bookings.edit');
         Route::put('/bookings/{booking}', [AdminBookingController::class, 'update'])->name('bookings.update');
         Route::patch('/bookings/{booking}/status', [AdminBookingController::class, 'updateStatus'])->name('bookings.status');

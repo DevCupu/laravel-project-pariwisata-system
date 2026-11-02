@@ -206,6 +206,56 @@
                 </div>
             @endif
 
+            @unless ($bookings->isEmpty())
+                <form id="bulk-bookings-form" method="POST" action="{{ route('admin.bookings.bulk') }}"
+                    data-bulk-form
+                    data-confirm="Terapkan tindakan pada booking yang dipilih? Jika menghapus, booking tidak dapat dipulihkan."
+                    class="flex flex-col gap-3 border-b border-base-300/60 bg-base-100 px-4 py-4 sm:px-6 xl:flex-row xl:items-end">
+                    @csrf
+                    <input type="hidden" name="q" value="{{ $filters['q'] }}">
+                    <input type="hidden" name="status_filter" value="{{ $filters['status'] }}">
+                    <input type="hidden" name="from" value="{{ $filters['from'] }}">
+                    <input type="hidden" name="to" value="{{ $filters['to'] }}">
+                    <input type="hidden" name="sort" value="{{ $filters['sort'] }}">
+
+                    <label class="flex items-center gap-2 pb-1 text-sm font-medium text-base-content/75 xl:mr-auto">
+                        <input type="checkbox" class="checkbox checkbox-primary checkbox-sm" data-select-all>
+                        Pilih semua di halaman ini
+                    </label>
+
+                    <span class="text-xs text-base-content/55" data-selected-count aria-live="polite">0 booking dipilih</span>
+
+                    <div class="grid grid-cols-2 gap-2 sm:flex sm:items-end">
+                        <label class="form-control min-w-0">
+                            <span class="label-text mb-1 text-xs font-semibold">Aksi</span>
+                            <select name="action" class="select select-bordered select-sm w-full sm:w-44"
+                                data-bulk-action required>
+                                <option value="">Pilih tindakan</option>
+                                <option value="status">Ubah status</option>
+                                <option value="delete">Hapus booking</option>
+                            </select>
+                        </label>
+
+                        <label class="form-control min-w-0">
+                            <span class="label-text mb-1 text-xs font-semibold">Status baru</span>
+                            <select name="status" class="select select-bordered select-sm w-full sm:w-40"
+                                data-bulk-status>
+                                <option value="">Pilih status</option>
+                                @foreach ($statusOptions as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+
+                        <button type="submit" class="btn btn-primary btn-sm col-span-2 sm:col-span-1"
+                            data-bulk-submit>
+                            <i class="fas fa-check text-xs"></i>
+                            Terapkan
+                        </button>
+                    </div>
+                </form>
+            @endunless
+
             @if ($bookings->isEmpty())
                 <x-ui.empty-state icon="fa-clipboard-list"
                     :title="$hasFilters ? 'Tidak ada booking yang cocok' : 'Belum ada data booking'"
@@ -236,6 +286,9 @@
                         <thead>
                             <tr
                                 class="border-b border-base-300/60 bg-base-200/40 text-[11px] uppercase tracking-wide text-base-content/50">
+                                <th scope="col" class="w-10 px-3 py-3">
+                                    <span class="sr-only">Pilih</span>
+                                </th>
                                 <th scope="col" class="px-4 py-3 text-left font-semibold">Booking</th>
                                 <th scope="col" class="px-4 py-3 text-left font-semibold">Kontak</th>
                                 <th scope="col" class="px-4 py-3 text-left font-semibold">Kunjungan</th>
@@ -253,6 +306,12 @@
                                     $waMessage = $waMessageFor($booking);
                                 @endphp
                                 <tr class="align-top transition-colors hover:bg-base-200/40">
+                                    <td class="w-10 px-3 py-3.5">
+                                        <input type="checkbox" name="booking_ids[]" value="{{ $booking->id }}"
+                                            form="bulk-bookings-form" data-booking-checkbox data-layout="desktop"
+                                            class="checkbox checkbox-primary checkbox-sm"
+                                            aria-label="Pilih booking {{ $booking->booking_code }}">
+                                    </td>
                                     <td class="border-l-2 {{ $rowAccent($booking->status) }} px-4 py-3.5">
                                         <span
                                             class="inline-block rounded-md bg-base-200 px-1.5 py-0.5 font-mono text-[11px] font-semibold tracking-tight text-base-content/70">
@@ -410,7 +469,13 @@
                                     <p class="text-[11px] text-base-content/50">Dibuat
                                         {{ $booking->created_at->diffForHumans() }}</p>
                                 </div>
-                                <x-ui.badge :tone="$badgeTone" dot class="shrink-0">{{ $statusLabel }}</x-ui.badge>
+                                <div class="flex shrink-0 items-center gap-2">
+                                    <input type="checkbox" name="booking_ids[]" value="{{ $booking->id }}"
+                                        form="bulk-bookings-form" data-booking-checkbox data-layout="compact"
+                                        class="checkbox checkbox-primary checkbox-sm"
+                                        aria-label="Pilih booking {{ $booking->booking_code }}">
+                                    <x-ui.badge :tone="$badgeTone" dot>{{ $statusLabel }}</x-ui.badge>
+                                </div>
                             </div>
 
                             <dl class="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
@@ -528,6 +593,57 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            const bulkForm = document.querySelector('[data-bulk-form]');
+            if (bulkForm) {
+                const checkboxes = [...document.querySelectorAll('[data-booking-checkbox]')];
+                const selectAll = bulkForm.querySelector('[data-select-all]');
+                const selectedCount = bulkForm.querySelector('[data-selected-count]');
+                const actionSelect = bulkForm.querySelector('[data-bulk-action]');
+                const statusSelect = bulkForm.querySelector('[data-bulk-status]');
+                const submitButton = bulkForm.querySelector('[data-bulk-submit]');
+                const desktopQuery = window.matchMedia('(min-width: 1280px)');
+
+                const visibleCheckboxes = () => {
+                    const layout = desktopQuery.matches ? 'desktop' : 'compact';
+                    return checkboxes.filter((checkbox) => checkbox.dataset.layout === layout);
+                };
+
+                const syncBulkControls = () => {
+                    const visible = visibleCheckboxes();
+                    const checkedCount = visible.filter((checkbox) => checkbox.checked).length;
+                    const action = actionSelect.value;
+                    const statusLabel = statusSelect.selectedOptions[0]?.textContent?.trim();
+
+                    selectedCount.textContent = `${checkedCount} booking dipilih`;
+                    selectAll.checked = visible.length > 0 && checkedCount === visible.length;
+                    selectAll.indeterminate = checkedCount > 0 && checkedCount < visible.length;
+                    statusSelect.disabled = action !== 'status';
+                    submitButton.disabled = checkedCount === 0 || !action || (action === 'status' && !statusSelect.value);
+
+                    if (action === 'delete') {
+                        bulkForm.dataset.confirm = `Hapus ${checkedCount} booking yang dipilih? Data pesanan menu terkait juga akan dihapus.`;
+                    } else if (action === 'status') {
+                        bulkForm.dataset.confirm = `Ubah status ${checkedCount} booking yang dipilih menjadi ${statusLabel || 'status pilihan'}?`;
+                    }
+                };
+
+                checkboxes.forEach((checkbox) => checkbox.addEventListener('change', syncBulkControls));
+                selectAll.addEventListener('change', () => {
+                    visibleCheckboxes().forEach((checkbox) => {
+                        checkbox.checked = selectAll.checked;
+                    });
+                    syncBulkControls();
+                });
+                actionSelect.addEventListener('change', syncBulkControls);
+                statusSelect.addEventListener('change', syncBulkControls);
+                desktopQuery.addEventListener('change', () => {
+                    checkboxes.filter((checkbox) => !visibleCheckboxes().includes(checkbox))
+                        .forEach((checkbox) => { checkbox.checked = false; });
+                    syncBulkControls();
+                });
+                syncBulkControls();
+            }
+
             const copyText = async (text) => {
                 try {
                     await navigator.clipboard.writeText(text);
